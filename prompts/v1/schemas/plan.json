@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "required": ["steps"],
+  "properties": {
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "detail", "reasoning", "detail_rank"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "detail": { "type": "string" },
+          "reasoning": { "type": "string" },
+          "touched": { "type": "array", "items": { "type": "string" } },
+          "detail_rank": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}

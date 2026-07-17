@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "required": ["new_current_step_id", "filled_detail"],
+  "properties": {
+    "new_current_step_id": { "type": "string" },
+    "filled_detail": { "type": "string" },
+    "downstream_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step_id", "change"],
+        "properties": {
+          "step_id": { "type": "string" },
+          "change": { "type": "string" }
+        }
+      }
+    }
+  }
+}

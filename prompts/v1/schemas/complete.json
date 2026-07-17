@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "required": ["insert_text"],
+  "properties": {
+    "insert_text": { "type": "string" },
+    "kind": { "type": "string" }
+  }
+}

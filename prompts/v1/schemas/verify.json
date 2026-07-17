@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "required": ["match_score", "correct"],
+  "properties": {
+    "match_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "correct": { "type": "boolean" },
+    "decisions_changed": { "type": "array", "items": { "type": "string" } },
+    "plan_delta": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step_id", "change"],
+        "properties": {
+          "step_id": { "type": "string" },
+          "change": { "type": "string" }
+        }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "properties": {
+        "llm": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

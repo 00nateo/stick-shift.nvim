@@ -1,0 +1,505 @@
+*reins.txt*    AI pair-programming harness with a configurable autonomy level
+
+Author:  reins.nvim contributors
+License: MIT (see LICENSE)
+
+==============================================================================
+CONTENTS                                                               *reins*
+
+  1. Introduction ......................... |reins-introduction|
+  2. Setup ................................ |reins-setup|
+  3. The autonomy ladder .................. |reins-autonomy|
+  4. Configuration ........................ |reins-config|
+  5. Commands ............................. |reins-commands|
+  6. The living plan ...................... |reins-plan|
+  7. Verify ............................... |reins-verify|
+  8. Inline completion .................... |reins-completion|
+  9. Hint ................................. |reins-hint|
+ 10. Backends ............................. |reins-backends|
+ 11. Safety ............................... |reins-safety|
+ 12. Health ............................... |reins-health|
+ 13. Developing ........................... |reins-develop|
+
+==============================================================================
+1. INTRODUCTION                                           *reins-introduction*
+
+reins.nvim is a configurable handicap on AI assistance. A single autonomy
+level (0-4) governs how much the AI does: at its most permissive it behaves
+like a full coding agent; dialed down, the AI does less of the writing and
+more of the scaffolding of thought - it helps you start, keeps direction,
+and checks your work - while you make the decisions and do the typing.
+
+Its centerpiece is a living plan the AI maintains as working memory (see
+|reins-plan|), surfaced as a "current step" with Verify and Next controls.
+Around it: leveled inline ghost-text completion, a one-sentence hint, and a
+panel that acts as a control surface, not a chat window. How much raw AI
+output is visible is itself configurable, down to nothing but a button and a
+hint.
+
+==============================================================================
+2. SETUP                                                         *reins-setup*
+
+Requires Neovim 0.11+, git, and the tools for whichever backend you use
+(see |reins-backends|). Install with your plugin manager, then: >lua
+
+    require("reins").setup({})
+<
+With lazy.nvim: >lua
+
+    { "reins-nvim/reins.nvim", opts = {} }
+<
+With Neovim 0.12's vim.pack (per the 0.12 docs; untested on 0.11): >lua
+
+    vim.pack.add({ { src = "https://github.com/reins-nvim/reins.nvim" } })
+    require("reins").setup({})
+<
+Then, in a project: >vim
+
+    :ReinsGoal build a todo CLI in Lua
+    " ... write code for the current step ...
+    :ReinsVerify
+    :ReinsNext
+<
+To try the plugin offline with no API key, use `backend = "mock"`.
+
+==============================================================================
+3. THE AUTONOMY LADDER                                        *reins-autonomy*
+
+One integer, 0-4, gates every feature. It is a real gating table (see
+`lua/reins/autonomy.lua`), not a prompt suggestion, and it is decoupled from
+model choice (|reins-backends|). Change it with |:ReinsAutonomy| or the
+cycle keymap at any time.
+
+  Level  Name           Authority                       Buffer writes ~
+  -----  -------------  ------------------------------  -------------------
+  4      autopilot      full agent, prompt in code out  agent, freely
+                                                        (checkpointed)
+  3      driver-assist  agent implements the current    agent, on explicit
+                        step on request, stops at       :ReinsImplement
+                        step boundaries
+  2      co-pilot       AI plans and verifies; the      human only
+         (default)      human types the code
+  1      navigator      AI keeps the plan, answers      human only
+                        when asked, volunteers nothing
+  0      hint-only      one-sentence hint on request;   human only
+                        no plan surfaced, no completion
+
+Feature availability per level:
+
+  Feature            0      1      2      3      4 ~
+  completion         no     no     yes    yes    yes
+  hint (manual)      yes    yes    yes    yes    yes
+  hint (auto)        no     no     yes    yes    yes
+  panel / plan       no     yes    yes    yes    yes
+  verify / next      no     yes    yes    yes    yes
+  implement          no     no     no     yes    yes
+  agent writes free  no     no     no     no     yes
+  transcript default hidden hidden hidden summary full
+  plan editable (!)  yes    yes    yes    no     no
+
+Overrides: `completion.force = true` enables completion below level 2;
+`completion.level = "off"` disables it everywhere; `ui.transcript` overrides
+the transcript default; `hint.enabled`/`hint.trigger` gate hints.
+
+==============================================================================
+4. CONFIGURATION                                                *reins-config*
+
+Call `require("reins").setup({...})` with any subset of the defaults below.
+Unknown keys produce a warning; invalid values warn and fall back to the
+default; `autonomy` is clamped to 0..4. >lua
+
+    require("reins").setup({
+      autonomy = 2,
+      backend  = "claude_code", -- "claude_code"|"acp"|"ollama"
+                                -- |"local_mac"|"mock"
+      models = {
+        ghost     = "local",    -- inline completion
+        hint      = "local",
+        plan      = "frontier",
+        verify    = "frontier",
+        next_step = "frontier",
+      },
+      ui = {
+        layout = "right",       -- "left"|"top"|"right"|"bottom"|"float"
+                                -- (movable at runtime via :Reins {layout})
+        transcript = nil,       -- nil = derive from autonomy;
+                                -- else "full"|"summary"|"hidden"
+        open_on_start = false,  -- NOTE: at autonomy 3-4 the panel opens on
+                                -- setup() regardless of this flag
+        width = 48,             -- cols for left/right docks and float
+        height = 14,            -- rows for top/bottom docks and float
+      },
+      plan = {
+        visibility = "current-only", -- "hidden"|"current-only"|"full"
+      },
+      completion = {
+        level = "line",         -- "off"|"word"|"line"|"multiline"
+                                -- |"paragraph"
+        accept_key = "<Tab>",
+        debounce_ms = 180,
+        force = false,          -- allow completion below autonomy 2
+      },
+      hint = {
+        enabled = true,
+        trigger = "manual",     -- "auto"|"manual"
+        max_len = 120,
+      },
+      verify = {
+        test_command = nil,     -- string; nil = auto-detect when
+                                -- auto_detect_tests
+        auto_detect_tests = true,
+        timeout_ms = 120000,
+      },
+      git = {
+        tag_commits = false,    -- "Reins-Autonomy: N (name)" trailer
+        checkpoint = true,      -- snapshot before agent edits (3-4)
+      },
+      backends = {
+        claude_code = {
+          bin = "claude",
+          model_local = "haiku",   -- CLI alias; cheap roles
+          model_frontier = nil,    -- nil = the CLI's default model
+          extra_args = {},
+        },
+        ollama = {
+          host = "http://localhost:11434",
+          model_local = "qwen3-coder:30b",
+          model_frontier = "qwen3-coder:30b",
+        },
+        acp = {
+          command = nil,        -- argv table, e.g. { "claude-code-acp" }
+        },
+        local_mac = {
+          url = "http://localhost:8080/v1",
+          model = "default",
+        },
+      },
+      keymaps = {               -- set any to false to disable
+        toggle_panel = "<leader>rr",
+        verify = "<leader>rv",
+        next = "<leader>rn",
+        cycle_autonomy = "<leader>ra",
+        hint = "<leader>rh",
+      },
+    })
+<
+Each `models.<role>` value is either an alias string ("local"/"frontier",
+resolved by the serving adapter, or an explicit model name passed through)
+or a table `{ backend = "<adapter>", model = "<name>" }` that pins a
+DIFFERENT adapter for that role. Example - cheap local models for the
+high-frequency roles, frontier for the plan-shaping ones: >lua
+
+    require("reins").setup({
+      backend = "claude_code",
+      models = {
+        ghost = { backend = "ollama", model = "qwen3-coder:30b" },
+        hint  = { backend = "ollama", model = "qwen3-coder:30b" },
+        plan      = "frontier",   -- served by claude_code
+        verify    = "frontier",
+        next_step = "frontier",
+      },
+    })
+<
+==============================================================================
+5. COMMANDS                                                   *reins-commands*
+
+                                                                      *:Reins*
+:Reins                  Toggle the panel.
+
+:Reins {layout}         Move the panel to {layout}: one of "left", "right",
+                        "top", "bottom", "float". Opens the panel when it is
+                        closed. An explicit choice here wins over
+                        |reins-config| `ui.layout` until changed again.
+
+                                                                  *:ReinsGoal*
+:ReinsGoal {text}       Set the goal and create (or re-create) the living
+                        plan. This is the entry point. Without {text},
+                        prompts for input.
+
+                                                    *:ReinsPlan* *:ReinsPlan!*
+:ReinsPlan              Open the rendered plan (`.reins/plan.md`) read-only.
+                        The plan is always inspectable, at every level.
+:ReinsPlan!             Edit `.reins/plan.json` directly. Editing the AI's
+                        working memory is a low-autonomy affordance,
+                        available at levels <= 2 only. Lifecycle operations
+                        reload the plan from disk, so manual edits are
+                        respected.
+
+                                                                *:ReinsVerify*
+:ReinsVerify            Verify the current step. See |reins-verify|.
+
+                                                                  *:ReinsNext*
+:ReinsNext              Advance the plan: the next (intentionally vague)
+                        step gets its detail filled in and becomes current;
+                        later steps are reshaped if decisions changed.
+                        Advancing past an unverified step marks it
+                        `skipped` (with a warning), never `verified`.
+
+                                                             *:ReinsImplement*
+:ReinsImplement         Let the agent implement the current step. Requires
+                        autonomy >= 3. Checkpoints first when
+                        `git.checkpoint` is enabled (|reins-safety|).
+
+                                                                  *:ReinsHint*
+:ReinsHint              Show a one-sentence hint at the cursor. Available
+                        at all levels; it is the only feature at level 0.
+
+                                                              *:ReinsAutonomy*
+:ReinsAutonomy {0..4}   Set the autonomy level. Without an argument, shows
+                        the current level and name.
+
+                                                               *:ReinsBackend*
+:ReinsBackend {name}    Switch the active backend adapter. Without an
+                        argument, shows the active one. Completion offers
+                        the registered adapter names.
+
+                                                                *:ReinsRevert*
+:ReinsRevert            Restore the working tree to the last checkpoint,
+                        after confirmation. See |reins-safety| for the
+                        new-files limitation.
+
+Default global keymaps (normal mode; configurable, `false` disables):
+`<leader>rr` toggle panel, `<leader>rv` verify, `<leader>rn` next,
+`<leader>ra` cycle autonomy (0->1->2->3->4->0), `<leader>rh` hint.
+
+==============================================================================
+6. THE LIVING PLAN                                                *reins-plan*
+
+The plan is an ordered list of steps that serves as the AI's working memory
+across the session. Properties:
+
+- Detail gradient: the current step is the most detailed; later steps are
+  intentionally vague (`detail_rank` encodes this). Far-term
+  over-specification is wasted effort, so detail is filled in on |:ReinsNext|.
+- It mutates: the plan follows the code, not the other way around. Verify
+  and Next may reshape later steps; every reshape is appended to the
+  decision log.
+- Step record: id, title, detailed body (what to implement, decisions the
+  human may need to make, reasoning), status, `touched` (files/symbols
+  expected to be affected - this scopes verification), and the last verify
+  result.
+
+Step statuses:
+
+  pending    not started; detail may still be vague
+  active     the current step
+  verified   passed |reins-verify| (LLM verdict positive AND tests, if any
+             ran, passed)
+  skipped    the user advanced past it without a successful verify - an
+             honest extension to the spec's pending/active/verified, so
+             history never pretends work was checked when it was not
+
+Storage, under the project root (nearest `.reins` or `.git` directory, else
+the current directory):
+
+  `.reins/plan.json`         source of truth, includes the backend session
+                           id so reasoning context survives restarts
+  `.reins/plan.md`           human-readable render (what |:ReinsPlan| shows)
+  `.reins/decisions.log`     append-only decision log
+  `.reins/checkpoints.json`  checkpoint refs (|reins-safety|)
+  `.reins/.gitignore`        contains `*` - the directory ignores itself by
+                           default; delete this file to track the plan
+
+Visibility: the panel defaults to showing only the current step
+(`plan.visibility = "current-only"`), but the plan is NEVER a permanently
+invisible black box - `:ReinsPlan` works at every level, and `:ReinsPlan!`
+lets you rewrite it at levels <= 2.
+
+==============================================================================
+7. VERIFY                                                       *reins-verify*
+
+|:ReinsVerify| is an isolated-subtask correctness gate: the verification
+prompt carries only scoped context, runs in a separate model invocation, and
+only a structured summary returns to the plan. It is scoped, never a
+full-repo reread:
+
+1. Changed surface = the step's `touched` entries that exist as paths,
+   restricted to the git diff since the step began (untracked files
+   included). If the expected surface did not change, the diff widens so
+   drift is visible.
+2. The project's real test command runs and its output is captured.
+   `verify.test_command` wins if set; otherwise, when
+   `verify.auto_detect_tests` is true, detection tries in order:
+   - `npm test`        package.json with a real "test" script
+   - `cargo test`      Cargo.toml
+   - `go test ./...`   go.mod
+   - `pytest -q`       pyproject.toml/pytest.ini/tox.ini + pytest on $PATH
+   - `make test`       Makefile with a `test:` target
+   - `mix test`        mix.exs
+   If nothing is detected, tests are honestly reported as "not run" - never
+   faked.
+3. The LLM sees only the scoped diff and the test output and returns a
+   structured VerifyResult.
+4. TWO SEPARATE CONFIDENCE SIGNALS are reported, and never conflated:
+   - `confidence.llm`: the model's judgment that the diff matches the step
+   - `confidence.tests`: 1.0 or 0.0 from the ACTUAL test run exit code,
+     merged in by the plugin - the model never gets to claim test results
+   "The LLM says the diff looks right" and "the test suite passed" are
+   different levels of assurance; an LLM eyeball never substitutes for a
+   green test run. A step becomes `verified` only when the verdict is
+   positive and tests (if any ran) passed.
+
+Verify may also record changed decisions and reshape later steps
+(`plan_delta`); both are appended to `.reins/decisions.log`.
+
+==============================================================================
+8. INLINE COMPLETION                                        *reins-completion*
+
+Ghost-text completion ahead of the cursor, available at autonomy >= 2 (or
+anywhere with `completion.force = true`; `completion.level = "off"` disables
+it entirely). The granularity is leveled:
+
+  word | line | multiline | paragraph
+
+Requests are debounced (`completion.debounce_ms`) and cancelled on
+keystroke; suggestions clear on cursor move and |InsertLeave|. The accept
+key (default <Tab>) inserts the suggestion and falls through to the normal
+key when no suggestion is visible, so <Tab> still indents.
+
+Accepting a completion acquires the single-writer buffer lock
+(|reins-safety|); displaying ghost text is lock-free. Completions are served
+by the `ghost` model role - typically a cheap or local model.
+
+Highlight: `ReinsGhost` (links to `Comment` by default).
+
+==============================================================================
+9. HINT                                                           *reins-hint*
+
+One sentence of direction ("where to go next", not code), rendered as
+unobtrusive virtual text at the cursor line in a dedicated namespace - it
+never touches the diagnostics namespace. Cleared on cursor move.
+
+Available at ALL autonomy levels; it is the only feature at level 0. With
+`hint.trigger = "auto"` (levels >= 2), hints can fire on |CursorHold|,
+rate-limited. Length is capped at `hint.max_len`. Hints read the current
+step's intent and are served by the cheap `hint` model role.
+
+Highlight: `ReinsHint` (links to `DiagnosticVirtualTextHint` by default).
+
+==============================================================================
+10. BACKENDS                                                  *reins-backends*
+
+All backends implement one adapter interface and can be switched at runtime
+with |:ReinsBackend|. Per-role model routing (|reins-config|) may pin
+different adapters per role regardless of the active backend.
+
+claude_code (default) ~
+  Runs the `claude` CLI headless: `-p` with a JSON output envelope for
+  one-shot operations; the session id is stored in `plan.json` and resumed
+  across calls so reasoning context survives restarts. For
+  |:ReinsImplement| it streams the agent's events into the transcript.
+  Usage terms note: reins drives the CLI as YOUR OWN authenticated tool -
+  interactive, user-initiated calls only; no background daemon hammering
+  it; reins never embeds, reads, or logs credentials. Use it within the
+  terms of your Claude subscription.
+
+ollama ~
+  Plain HTTP to a local Ollama server (`backends.ollama.host`) via curl.
+  A good cheap target for the ghost/hint roles.
+
+acp ~
+  Agent Client Protocol client (JSON-RPC over stdio) for ACP agents,
+  spawned from `backends.acp.command`. In first integration; check
+  |:checkhealth| reins for its current availability.
+
+local_mac ~
+  OpenAI-compatible local server (MLX etc.) at `backends.local_mac.url`.
+  In first integration.
+
+mock ~
+  Deterministic canned responses. Makes the entire core loop runnable
+  offline with no key; used by the test suite. reins falls back to mock
+  with a warning when the configured backend is not registered.
+
+Structured output contract: plan/verify/next/hint/completion responses are
+parsed as JSON and schema-validated; on failure the backend is asked ONCE
+more for valid JSON, then a clean error surfaces. Free-form model text is
+never trusted for control flow.
+
+==============================================================================
+11. SAFETY                                                      *reins-safety*
+
+Single-writer buffer lock ~
+  Completion-accept and agent edits must each acquire a per-buffer lock;
+  the other writer is refused or cancelled. Two writers can never mutate
+  the same buffer at once. Ghost text DISPLAY is lock-free; ACCEPTING it
+  takes the lock.
+
+Checkpoints and :ReinsRevert ~
+  At levels 3-4, before the agent writes (when `git.checkpoint` is true), a
+  non-mutating git snapshot is taken - a commit object created via
+  plumbing with a temporary index, so untracked files are included and
+  your index, HEAD, and stash are untouched. Refs are recorded in
+  `.reins/checkpoints.json`. |:ReinsRevert| restores the working tree and
+  index from the most recent snapshot after confirmation.
+
+  LIMITATION: the restore overwrites tracked-at-snapshot files but does
+  NOT delete files created after the snapshot. After a revert, run
+  `git status` and remove leftover new files by hand if needed.
+
+Decision log ~
+  `.reins/decisions.log` is append-only: one line per meaningful course
+  change (plan created, step advanced, decision changed, step reshaped,
+  checkpoint taken).
+
+Autonomy-tagged commits ~
+  Opt-in via `git.tag_commits`: commit-message buffers ('gitcommit'
+  filetype) get a trailer like `Reins-Autonomy: 2 (co-pilot)` inserted
+  automatically, so history shows how much was machine-assisted. Delete
+  the line before saving to opt out of tagging a single commit.
+
+==============================================================================
+12. HEALTH                                                      *reins-health*
+
+Run: >vim
+
+    :checkhealth reins
+<
+Reports: Neovim version (0.11 required; 0.12-only features are noted), git
+presence and version, prompt templates readable, each registered backend's
+availability (claude binary and version, ollama reachability when
+registered), the active backend, the detected test command for the current
+project, and whether a plan exists.
+
+==============================================================================
+13. DEVELOPING                                                 *reins-develop*
+
+Repository scripts: >sh
+
+    # manual smoke: loads only this repo, mock backend, level 2
+    nvim -u scripts/minimal_init.lua
+
+    # headless smoke test of the core loop (plan -> verify -> next)
+    nvim --headless -l scripts/smoke.lua
+
+    # test suite; exit code = number of failures
+    nvim --headless -l tests/run.lua
+<
+Writing a backend adapter ~
+
+An adapter is a plain table registered with
+`require("reins.backend").register(name, adapter)`: >lua
+
+    adapter.name                    -- string (set by register if absent)
+    adapter.available()             -- -> boolean, string|nil (health; cheap)
+    adapter.resolve_model(alias)    -- "local"/"frontier" -> concrete model
+                                    -- name; anything else passes through
+    adapter:generate(opts, cb)      -- -> handle|nil
+      -- opts = { op, system, prompt, model, json, session, timeout_ms,
+      --          root }
+      -- cb(err|nil, raw_text|nil, meta|nil); meta may carry session_id.
+      -- cb MAY be called from a fast event; the runner re-schedules onto
+      -- the main loop.
+      -- handle = { cancel = fun() }; after cancel, cb("cancelled") or
+      -- silence are both acceptable.
+    adapter.<op>(adapter, ctx, cb)  -- OPTIONAL native override per op
+      -- (complete|hint|plan|verify|next_step|implement). Skips prompt
+      -- rendering AND schema validation: the result must already match
+      -- the op's schema.
+<
+The shared runner in `lua/reins/backend/init.lua` handles prompt rendering
+(templates in `prompts/v1/`), JSON parsing, schema validation, and the
+retry-once-then-clean-error policy, so a minimal adapter only implements
+`generate()`. `lua/reins/backend/mock.lua` is the reference implementation.
+
+vim:tw=78:ts=8:noet:ft=help:norl:
