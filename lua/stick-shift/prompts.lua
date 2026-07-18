@@ -2,7 +2,7 @@
 ---Templates live in prompts/<VERSION>/<op>.{system,user}.md as data, so they
 ---can be tuned without touching Lua logic. `{{var}}` placeholders are
 ---substituted from a vars table; unknown vars become "".
-local util = require("reins.util")
+local util = require("stick-shift.util")
 
 local M = {}
 
@@ -23,7 +23,7 @@ local function load_template(rel)
   if cache[rel] == nil then
     local content, err = util.read_file(template_path(rel))
     if not content then
-      error("reins: missing prompt template " .. rel .. " (" .. tostring(err) .. ")")
+      error("stick-shift: missing prompt template " .. rel .. " (" .. tostring(err) .. ")")
     end
     cache[rel] = content
   end

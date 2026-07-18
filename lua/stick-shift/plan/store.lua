@@ -1,11 +1,11 @@
----@brief Persistence for the living plan: .reins/plan.json (source of truth),
----.reins/plan.md (human-readable render), .reins/decisions.log (append-only).
----The .reins directory is git-ignored by default via its own .gitignore.
-local util = require("reins.util")
+---@brief Persistence for the living plan: .stick-shift/plan.json (source of truth),
+---.stick-shift/plan.md (human-readable render), .stick-shift/decisions.log (append-only).
+---The .stick-shift directory is git-ignored by default via its own .gitignore.
+local util = require("stick-shift.util")
 
 local M = {}
 
----@class reins.Step
+---@class stick-shift.Step
 ---@field id string
 ---@field title string
 ---@field detail string
@@ -16,34 +16,34 @@ local M = {}
 ---@field began_ref string|nil git HEAD when the step became active
 ---@field last_verify table|nil most recent VerifyResult (+ tests ground truth)
 
----@class reins.Plan
+---@class stick-shift.Plan
 ---@field version integer
 ---@field goal string
 ---@field created string ISO-8601
 ---@field updated string ISO-8601
 ---@field session { backend: string, id: string }|nil backend conversation id
 ---@field current string|nil id of the active step
----@field steps reins.Step[]
+---@field steps stick-shift.Step[]
 
 ---@param root string
 ---@return string
 function M.dir(root)
-  return root .. "/.reins"
+  return root .. "/.stick-shift"
 end
 
----Create .reins/ (with a self-ignoring .gitignore) on first use.
+---Create .stick-shift/ (with a self-ignoring .gitignore) on first use.
 ---@param root string
 function M.ensure(root)
   local dir = M.dir(root)
   if not util.exists(dir) then
     util.ensure_dir(dir)
-    -- Ignore everything inside .reins by default; delete this file to track the plan.
+    -- Ignore everything inside .stick-shift by default; delete this file to track the plan.
     util.write_file(dir .. "/.gitignore", "*\n")
   end
 end
 
 ---@param goal string
----@return reins.Plan
+---@return stick-shift.Plan
 function M.new_plan(goal)
   local now = util.now_iso()
   return {
@@ -58,7 +58,7 @@ function M.new_plan(goal)
 end
 
 ---@param root string
----@return reins.Plan|nil plan, string|nil err
+---@return stick-shift.Plan|nil plan, string|nil err
 function M.load(root)
   local content = util.read_file(M.dir(root) .. "/plan.json")
   if not content then
@@ -73,7 +73,7 @@ end
 
 ---Persist plan.json and re-render plan.md.
 ---@param root string
----@param plan reins.Plan
+---@param plan stick-shift.Plan
 ---@return boolean ok, string|nil err
 function M.save(root, plan)
   M.ensure(root)
@@ -86,9 +86,9 @@ function M.save(root, plan)
   return true
 end
 
----@param plan reins.Plan
+---@param plan stick-shift.Plan
 ---@param id string|nil defaults to plan.current
----@return reins.Step|nil
+---@return stick-shift.Step|nil
 function M.get_step(plan, id)
   id = id or plan.current
   for _, step in ipairs(plan.steps or {}) do
@@ -100,7 +100,7 @@ function M.get_step(plan, id)
 end
 
 ---Make `id` the active step (demoting whichever step was active).
----@param plan reins.Plan
+---@param plan stick-shift.Plan
 ---@param id string
 ---@param began_ref string|nil git HEAD at activation
 ---@return boolean ok
@@ -120,8 +120,8 @@ function M.set_current(plan, id, began_ref)
   return true
 end
 
----Render the human-readable plan.md (also used by :ReinsPlan).
----@param plan reins.Plan
+---Render the human-readable plan.md (also used by :StickShiftPlan).
+---@param plan stick-shift.Plan
 ---@return string
 function M.render_md(plan)
   local lines = {
@@ -164,7 +164,7 @@ function M.render_md(plan)
 end
 
 ---Record the backend conversation id so plan reasoning context survives restarts.
----@param plan reins.Plan
+---@param plan stick-shift.Plan
 ---@param backend_name string
 ---@param session_id string
 function M.set_session(plan, backend_name, session_id)

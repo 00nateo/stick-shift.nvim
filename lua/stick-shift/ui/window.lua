@@ -1,10 +1,10 @@
 ---@brief Panel window management. One window, dockable as a split on any
 ---editor edge ("left"|"top"|"right"|"bottom") or floating at the right edge
 ---("float"); the layout is switchable at runtime without losing the buffer.
----All window logic for the panel lives here - reins.ui.panel owns the buffer,
+---All window logic for the panel lives here - stick-shift.ui.panel owns the buffer,
 ---this module owns where it shows.
-local config = require("reins.config")
-local util = require("reins.util")
+local config = require("stick-shift.config")
+local util = require("stick-shift.util")
 
 local M = {}
 
@@ -12,7 +12,7 @@ local M = {}
 M._win = nil
 ---@type integer|nil the buffer last shown (kept across close/re-open)
 M._buf = nil
----@type string|nil layout chosen EXPLICITLY by the user (set_layout / :Reins
+---@type string|nil layout chosen EXPLICITLY by the user (set_layout / :StickShift
 ---{layout}); wins over config.ui.layout until changed. nil = follow config.
 M._layout = nil
 ---@type string|nil the layout the currently-open window actually uses

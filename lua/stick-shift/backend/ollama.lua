@@ -5,7 +5,7 @@
 ---{host}/api/generate with stream=false and parses `.response`; when the op
 ---expects structured output, ollama's `format: "json"` mode constrains the
 ---model server-side.
-local config = require("reins.config")
+local config = require("stick-shift.config")
 
 local M = { name = "ollama" }
 
@@ -28,7 +28,7 @@ local function tail(s, n)
 end
 
 ---Cheap check only: curl present + host configured. Actual server
----reachability ({host}/api/tags) is probed by :checkhealth reins, not here.
+---reachability ({host}/api/tags) is probed by :checkhealth stick-shift, not here.
 ---@return boolean ok, string|nil msg
 function M.available()
   local c = bcfg()
@@ -38,7 +38,7 @@ function M.available()
   if type(c.host) ~= "string" or c.host == "" then
     return false, "backends.ollama.host is not configured"
   end
-  return true, ("curl found; host %s (reachability is checked by :checkhealth reins)"):format(c.host)
+  return true, ("curl found; host %s (reachability is checked by :checkhealth stick-shift)"):format(c.host)
 end
 
 ---Map role aliases to the configured model names; pass concrete names through.

@@ -1,10 +1,10 @@
--- Offline tests for lua/reins/schema.lua: every supported keyword (type,
+-- Offline tests for lua/stick-shift/schema.lua: every supported keyword (type,
 -- properties, required, items, enum, minimum, maximum), tolerance for extra
 -- properties, and the shape of error strings including nested paths.
 local T = {}
 
 local function validate(value, schema)
-  return require("reins.schema").validate(value, schema)
+  return require("stick-shift.schema").validate(value, schema)
 end
 
 -- type: scalars ----------------------------------------------------------------

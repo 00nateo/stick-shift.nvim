@@ -1,6 +1,6 @@
--- Offline tests for lua/reins/lock.lua: per-buffer single-writer try-lock.
+-- Offline tests for lua/stick-shift/lock.lua: per-buffer single-writer try-lock.
 -- Buffer numbers are plain integer keys to the lock table; no real buffers needed.
-local lock = require("reins.lock")
+local lock = require("stick-shift.lock")
 
 local T = {}
 

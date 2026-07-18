@@ -1,4 +1,4 @@
--- Offline tests for lua/reins/plan/lifecycle.lua: the whole core loop
+-- Offline tests for lua/stick-shift/plan/lifecycle.lua: the whole core loop
 -- (goal -> plan -> verify -> next -> implement gate) against the mock
 -- backend, in throwaway cwds. Mock callbacks are synchronous, so no waits.
 local T = {}
@@ -9,21 +9,21 @@ local orig_cwd = assert(vim.uv.cwd())
 ---@return string dir, table lifecycle, table store, table mock, table config
 local function fresh()
   for name in pairs(package.loaded) do
-    if name:match("^reins") then
+    if name:match("^stick%-shift") then
       package.loaded[name] = nil
     end
   end
   local dir = vim.fn.tempname()
   vim.fn.mkdir(dir, "p")
   vim.uv.chdir(dir)
-  local config = require("reins.config")
+  local config = require("stick-shift.config")
   config.setup({ backend = "mock", autonomy = 2 })
-  local backend = require("reins.backend")
-  local mock = require("reins.backend.mock")
+  local backend = require("stick-shift.backend")
+  local mock = require("stick-shift.backend.mock")
   mock.reset()
   backend.register("mock", mock)
   assert(backend.use("mock"))
-  return dir, require("reins.plan.lifecycle"), require("reins.plan.store"), mock, config
+  return dir, require("stick-shift.plan.lifecycle"), require("stick-shift.plan.store"), mock, config
 end
 
 local function teardown()
@@ -261,7 +261,7 @@ T["verify: a failed plan save surfaces as an error, not silent success"] = funct
   start_plan(lifecycle)
   -- Make plan.json itself read-only (truncating an existing file needs write
   -- permission on the FILE, not the directory) so store.save fails mid-verify.
-  local plan_json = dir .. "/.reins/plan.json"
+  local plan_json = dir .. "/.stick-shift/plan.json"
   assert(vim.uv.fs_chmod(plan_json, 292)) -- 0444
   local err_seen
   lifecycle.verify(function(err)

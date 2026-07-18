@@ -1,8 +1,8 @@
--- Offline tests for lua/reins/plan/store.lua: persistence of plan.json,
--- plan.md rendering, the append-only decisions.log and the .reins self-ignore.
+-- Offline tests for lua/stick-shift/plan/store.lua: persistence of plan.json,
+-- plan.md rendering, the append-only decisions.log and the .stick-shift self-ignore.
 -- Everything here is synchronous filesystem work in throwaway temp dirs.
-local store = require("reins.plan.store")
-local util = require("reins.util")
+local store = require("stick-shift.plan.store")
+local util = require("stick-shift.util")
 
 ---Fresh temp directory outside the repo tree.
 ---@return string
@@ -12,10 +12,10 @@ local function tmpdir()
   return dir
 end
 
----A plan exercising every documented reins.Step / reins.Plan field with
+---A plan exercising every documented stick-shift.Step / stick-shift.Plan field with
 ---non-nil, JSON-representable values (nil fields vanish in JSON, so the
 ---round-trip test pins down the fields that must survive).
----@return reins.Plan
+---@return stick-shift.Plan
 local function make_full_plan()
   local plan = store.new_plan("ship the widget")
   plan.session = { backend = "mock", id = "sess-42" }
@@ -40,7 +40,7 @@ local function make_full_plan()
     {
       id = "s2",
       title = "Wire the event loop",
-      detail = "Subscribe widget to reins.events.",
+      detail = "Subscribe widget to stick-shift.events.",
       reasoning = "Steps must react to plan changes.",
       status = "active",
       touched = { "lua/widget/events.lua" },
@@ -178,7 +178,7 @@ T["decisions.log is append-only across saves"] = function()
   end
 end
 
-T[".reins/.gitignore self-ignore is created and git honors it"] = function()
+T[".stick-shift/.gitignore self-ignore is created and git honors it"] = function()
   local root = tmpdir()
   vim.fn.system({ "git", "init", root })
   assert(vim.v.shell_error == 0, "git init failed")
@@ -188,24 +188,24 @@ T[".reins/.gitignore self-ignore is created and git honors it"] = function()
   assert(store.save(root, make_full_plan()))
 
   local gitignore = store.dir(root) .. "/.gitignore"
-  assert(util.exists(gitignore), ".reins/.gitignore was not created")
-  assert(slurp(gitignore) == "*\n", ".gitignore should ignore everything inside .reins")
+  assert(util.exists(gitignore), ".stick-shift/.gitignore was not created")
+  assert(slurp(gitignore) == "*\n", ".gitignore should ignore everything inside .stick-shift")
 
-  vim.fn.system({ "git", "-C", root, "check-ignore", ".reins/plan.json" })
-  assert(vim.v.shell_error == 0, "git does not ignore .reins/plan.json")
+  vim.fn.system({ "git", "-C", root, "check-ignore", ".stick-shift/plan.json" })
+  assert(vim.v.shell_error == 0, "git does not ignore .stick-shift/plan.json")
   local status = vim.fn.system({ "git", "-C", root, "status", "--porcelain" })
-  assert(not status:find(".reins", 1, true), ".reins leaked into git status:\n" .. status)
+  assert(not status:find(".stick-shift", 1, true), ".stick-shift leaked into git status:\n" .. status)
 
   -- ensure() must not clobber a user-edited .gitignore on later saves.
   assert(util.write_file(gitignore, "plan.md\n"))
   assert(store.save(root, make_full_plan()))
-  assert(slurp(gitignore) == "plan.md\n", "save() overwrote a user-edited .reins/.gitignore")
+  assert(slurp(gitignore) == "plan.md\n", "save() overwrote a user-edited .stick-shift/.gitignore")
 end
 
-T["load() on a directory without .reins returns nil, not an error"] = function()
+T["load() on a directory without .stick-shift returns nil, not an error"] = function()
   local root = tmpdir()
   local plan, err = store.load(root)
-  assert(plan == nil, "expected nil plan for missing .reins, got " .. vim.inspect(plan))
+  assert(plan == nil, "expected nil plan for missing .stick-shift, got " .. vim.inspect(plan))
   assert(type(err) == "string" and err ~= "", "expected a descriptive error string")
 end
 

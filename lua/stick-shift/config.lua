@@ -1,11 +1,11 @@
----@brief Config schema, defaults, and validation for reins.nvim.
-local util = require("reins.util")
+---@brief Config schema, defaults, and validation for stick-shift.nvim.
+local util = require("stick-shift.util")
 
 local M = {}
 
----@class reins.Config
+---@class stick-shift.Config
 M.defaults = {
-  -- 0..4: hint-only, navigator, co-pilot, driver-assist, autopilot. See :help reins-autonomy.
+  -- 0..4: hint-only, navigator, co-pilot, driver-assist, autopilot. See :help stick-shift-autonomy.
   autonomy = 2,
   -- Active backend adapter: "claude_code" | "acp" | "ollama" | "local_mac" | "mock"
   backend = "claude_code",
@@ -21,7 +21,7 @@ M.defaults = {
     next_step = "frontier",
   },
   ui = {
-    layout = "right", -- "left" | "top" | "right" | "bottom" | "float" (movable live via :Reins {layout})
+    layout = "right", -- "left" | "top" | "right" | "bottom" | "float" (movable live via :StickShift {layout})
     transcript = nil, -- nil = derive from autonomy; else "full"|"summary"|"hidden"
     open_on_start = false, -- note: at autonomy 3-4 the panel opens on setup regardless
     width = 48, -- columns for left/right docks and float
@@ -47,7 +47,7 @@ M.defaults = {
     timeout_ms = 120000,
   },
   git = {
-    tag_commits = false, -- add "Reins-Autonomy: N (name)" trailer to assisted commits
+    tag_commits = false, -- add "StickShift-Autonomy: N (name)" trailer to assisted commits
     checkpoint = true, -- snapshot before agent-driven edits (levels 3-4)
   },
   backends = {
@@ -72,11 +72,11 @@ M.defaults = {
   },
   keymaps = {
     -- set any to false to disable
-    toggle_panel = "<leader>rr",
-    verify = "<leader>rv",
-    next = "<leader>rn",
-    cycle_autonomy = "<leader>ra",
-    hint = "<leader>rh",
+    toggle_panel = "<leader>ss",
+    verify = "<leader>sv",
+    next = "<leader>sn",
+    cycle_autonomy = "<leader>sa",
+    hint = "<leader>sh",
   },
 }
 
@@ -196,13 +196,13 @@ function M.validate(user)
   return problems
 end
 
----@type reins.Config
+---@type stick-shift.Config
 M.current = vim.deepcopy(M.defaults)
 
 ---Merge and validate user options. Invalid leaves are reported (vim.notify)
 ---and the offending values fall back to defaults; unknown keys warn.
 ---@param user table|nil
----@return reins.Config
+---@return stick-shift.Config
 function M.setup(user)
   user = user or {}
   if type(user) ~= "table" then
@@ -230,7 +230,7 @@ function M.setup(user)
   return M.current
 end
 
----@return reins.Config
+---@return stick-shift.Config
 function M.get()
   return M.current
 end

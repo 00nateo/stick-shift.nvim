@@ -1,4 +1,4 @@
----@brief :checkhealth reins - environment and backend diagnostics.
+---@brief :checkhealth stick-shift - environment and backend diagnostics.
 ---Every probe is wrapped so a broken backend or missing setup() can never
 ---crash the health report itself.
 local M = {}
@@ -29,15 +29,15 @@ end
 
 function M.check()
   local health = vim.health
-  local util = require("reins.util")
+  local util = require("stick-shift.util")
 
   -- ------------------------------------------------------------ neovim ----
-  health.start("reins: environment")
+  health.start("stick-shift: environment")
   probe(health, function()
     if vim.fn.has("nvim-0.11") == 1 then
       health.ok("Neovim " .. tostring(vim.version()) .. " (>= 0.11)")
       if vim.fn.has("nvim-0.12") == 1 then
-        health.info("Neovim 0.12+ detected: native vim.lsp.inline_completion may be available (reins currently uses the 0.11 extmark path)")
+        health.info("Neovim 0.12+ detected: native vim.lsp.inline_completion may be available (stick-shift currently uses the 0.11 extmark path)")
       end
     else
       health.error("Neovim >= 0.11 is required; found " .. tostring(vim.version()))
@@ -45,17 +45,17 @@ function M.check()
   end)
 
   probe(health, function()
-    local git = require("reins.git")
+    local git = require("stick-shift.git")
     if git.available() then
       local ok, out = run({ "git", "--version" })
       health.ok(ok and out or "git found (version query failed)")
     else
-      health.warn("git not found: checkpoints, scoped verify diffs, and :ReinsRevert are unavailable")
+      health.warn("git not found: checkpoints, scoped verify diffs, and :StickShiftRevert are unavailable")
     end
   end)
 
   probe(health, function()
-    local prompts = require("reins.prompts")
+    local prompts = require("stick-shift.prompts")
     local dir = util.plugin_root() .. "/prompts/" .. prompts.VERSION
     if util.exists(dir) then
       health.ok("prompt templates present: " .. dir)
@@ -65,17 +65,17 @@ function M.check()
   end)
 
   -- ----------------------------------------------------------- backends ----
-  health.start("reins: backends")
+  health.start("stick-shift: backends")
   probe(health, function()
-    local backend = require("reins.backend")
+    local backend = require("stick-shift.backend")
     local names = backend.list()
     if #names == 0 then
-      health.warn("no backends registered - has require('reins').setup() been called?")
+      health.warn("no backends registered - has require('stick-shift').setup() been called?")
       return
     end
     local _, active_name = backend.active()
     if not active_name then
-      health.warn("no active backend selected - has require('reins').setup() been called?")
+      health.warn("no active backend selected - has require('stick-shift').setup() been called?")
     end
     for _, name in ipairs(names) do
       -- backend exposes no public per-name getter; read the registry directly
@@ -99,7 +99,7 @@ function M.check()
 
     -- Deeper probes only for backends that are actually registered.
     if vim.tbl_contains(names, "ollama") then
-      local host = require("reins.config").get().backends.ollama.host
+      local host = require("stick-shift.config").get().backends.ollama.host
       if vim.fn.executable("curl") ~= 1 then
         health.warn("ollama: curl not found; cannot reach " .. tostring(host))
       else
@@ -112,7 +112,7 @@ function M.check()
       end
     end
     if vim.tbl_contains(names, "local_mac") then
-      local url = require("reins.config").get().backends.local_mac.url
+      local url = require("stick-shift.config").get().backends.local_mac.url
       if type(url) == "string" and url ~= "" and vim.fn.executable("curl") == 1 then
         local ok = run({ "curl", "-sf", "-o", "/dev/null", "--max-time", "2", url .. "/models" }, 4000)
         if ok then
@@ -125,7 +125,7 @@ function M.check()
       end
     end
     if vim.tbl_contains(names, "claude_code") then
-      local bin = require("reins.config").get().backends.claude_code.bin or "claude"
+      local bin = require("stick-shift.config").get().backends.claude_code.bin or "claude"
       if vim.fn.executable(bin) == 1 then
         local ok, out = run({ bin, "--version" })
         health.ok(("claude_code: %s (%s)"):format(bin, ok and out or "version query failed"))
@@ -136,12 +136,12 @@ function M.check()
   end)
 
   -- ------------------------------------------------------------ project ----
-  health.start("reins: project")
+  health.start("stick-shift: project")
   probe(health, function()
     local root = util.project_root()
     health.info("project root: " .. root)
 
-    local lifecycle = require("reins.plan.lifecycle")
+    local lifecycle = require("stick-shift.plan.lifecycle")
     local cmd = lifecycle.detect_test_command(root)
     if cmd then
       health.ok("verify test command: " .. cmd)
@@ -149,7 +149,7 @@ function M.check()
       health.info("no test command detected (verify will report tests as not run; set verify.test_command)")
     end
 
-    local store = require("reins.plan.store")
+    local store = require("stick-shift.plan.store")
     local plan = store.load(root)
     if plan then
       health.ok(("living plan present: %d step(s), goal: %s"):format(
@@ -157,7 +157,7 @@ function M.check()
         util.truncate(plan.goal or "", 60)
       ))
     else
-      health.info("no living plan yet - start one with :ReinsGoal")
+      health.info("no living plan yet - start one with :StickShiftGoal")
     end
   end)
 end

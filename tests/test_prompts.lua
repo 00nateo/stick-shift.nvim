@@ -1,4 +1,4 @@
--- Offline tests for lua/reins/prompts.lua: template rendering, {{placeholder}}
+-- Offline tests for lua/stick-shift/prompts.lua: template rendering, {{placeholder}}
 -- substitution, schema loading, caching, and clean failure on missing templates.
 -- Runner contract: return { ["name"] = fn }; a test passes unless it errors.
 local T = {}
@@ -34,7 +34,7 @@ local function full_vars()
 end
 
 T["01 every op renders system+user with all placeholders substituted"] = function()
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   for _, op in ipairs(ALL_OPS) do
     local system, user = prompts.render(op, full_vars())
     assert(type(system) == "string" and #system > 0, op .. ": empty system prompt")
@@ -51,7 +51,7 @@ T["01 every op renders system+user with all placeholders substituted"] = functio
 end
 
 T["02 substituted values appear in rendered output"] = function()
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   local vars = full_vars()
 
   local _, plan_user = prompts.render("plan", vars)
@@ -91,7 +91,7 @@ T["02 substituted values appear in rendered output"] = function()
 end
 
 T["03 missing vars render empty, never literal braces"] = function()
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   for _, op in ipairs(ALL_OPS) do
     local system, user = prompts.render(op, {})
     assert(
@@ -103,7 +103,7 @@ T["03 missing vars render empty, never literal braces"] = function()
 end
 
 T["04 substitute: tables JSON-encode, scalars stringify, nil empties"] = function()
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   local out = prompts.substitute("a={{a}} b={{b}} c={{c}} d={{d}}", {
     a = { k = "v" },
     b = 7,
@@ -121,7 +121,7 @@ T["04 substitute: tables JSON-encode, scalars stringify, nil empties"] = functio
 end
 
 T["05 schema loads for every structured op"] = function()
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   for _, op in ipairs(SCHEMA_OPS) do
     local s = prompts.schema(op)
     assert(type(s) == "table", op .. ": schema did not load")
@@ -141,20 +141,20 @@ T["05 schema loads for every structured op"] = function()
 end
 
 T["06 freeform and unknown ops have no schema"] = function()
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   assert(prompts.schema("implement") == nil, "implement is freeform; schema must be nil")
   assert(prompts.schema("no_such_op") == nil, "unknown op must have nil schema, not an error")
 end
 
 T["07 schema is cached across calls"] = function()
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   local first = prompts.schema("plan")
   local second = prompts.schema("plan")
   assert(first ~= nil and first == second, "repeat schema() calls must return the cached table")
 end
 
 T["08 missing template is a clean error"] = function()
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   local ok, err = pcall(prompts.render, "no_such_op", {})
   assert(not ok, "render of a missing op must error")
   err = tostring(err)
@@ -163,7 +163,7 @@ T["08 missing template is a clean error"] = function()
 end
 
 T["09 template cache holds the raw template, not rendered output"] = function()
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   local vars1 = full_vars()
   vars1.goal = "GOAL_ONE unique"
   local vars2 = full_vars()

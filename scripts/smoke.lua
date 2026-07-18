@@ -1,6 +1,6 @@
 -- Headless smoke test of the core loop against the mock backend:
 --   nvim --headless -l scripts/smoke.lua [workdir]
--- Exercises: setup -> :ReinsGoal (plan) -> :ReinsVerify -> :ReinsNext,
+-- Exercises: setup -> :StickShiftGoal (plan) -> :StickShiftVerify -> :StickShiftNext,
 -- asserts the plan state transitions, prints PASS/FAIL, exits non-zero on failure.
 local src = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p")
 local repo = vim.fs.dirname(vim.fs.dirname(src))
@@ -23,10 +23,10 @@ local function check(cond, label)
   end
 end
 
-require("reins").setup({ backend = "mock", autonomy = 2 })
+require("stick-shift").setup({ backend = "mock", autonomy = 2 })
 
-local lifecycle = require("reins.plan.lifecycle")
-local store = require("reins.plan.store")
+local lifecycle = require("stick-shift.plan.lifecycle")
+local store = require("stick-shift.plan.store")
 
 -- 1. goal -> plan
 local plan_done = false
@@ -79,13 +79,13 @@ check(reloaded and reloaded.current == "s2", "plan.json persisted current=s2")
 
 -- 4. persistence artifacts
 local uv = vim.uv
-check(uv.fs_stat(workdir .. "/.reins/plan.json") ~= nil, ".reins/plan.json exists")
-check(uv.fs_stat(workdir .. "/.reins/plan.md") ~= nil, ".reins/plan.md exists")
-check(uv.fs_stat(workdir .. "/.reins/decisions.log") ~= nil, ".reins/decisions.log exists")
-check(uv.fs_stat(workdir .. "/.reins/.gitignore") ~= nil, ".reins is git-ignored by default")
+check(uv.fs_stat(workdir .. "/.stick-shift/plan.json") ~= nil, ".stick-shift/plan.json exists")
+check(uv.fs_stat(workdir .. "/.stick-shift/plan.md") ~= nil, ".stick-shift/plan.md exists")
+check(uv.fs_stat(workdir .. "/.stick-shift/decisions.log") ~= nil, ".stick-shift/decisions.log exists")
+check(uv.fs_stat(workdir .. "/.stick-shift/.gitignore") ~= nil, ".stick-shift is git-ignored by default")
 
 -- 5. autonomy gating from the command layer
-require("reins").set_autonomy(0)
+require("stick-shift").set_autonomy(0)
 local blocked = nil
 lifecycle.verify(function(err)
   blocked = err

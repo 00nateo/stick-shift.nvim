@@ -1,5 +1,5 @@
 -- Load-check modules headlessly:
---   nvim --headless -l scripts/loadcheck.lua reins.ui.panel reins.complete ...
+--   nvim --headless -l scripts/loadcheck.lua stick-shift.ui.panel stick-shift.complete ...
 -- Exits with the number of modules that failed to require.
 local src = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p")
 local repo = vim.fs.dirname(vim.fs.dirname(src))
@@ -7,7 +7,7 @@ vim.opt.runtimepath:prepend(repo)
 
 local mods = _G.arg or {}
 if #mods == 0 then
-  mods = { "reins" }
+  mods = { "stick-shift" }
 end
 local failed = 0
 for _, m in ipairs(mods) do

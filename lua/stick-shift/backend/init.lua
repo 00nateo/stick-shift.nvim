@@ -15,11 +15,11 @@
 ---  adapter.<op>(adapter, ctx, cb)               (optional native override, e.g. mock, acp,
 ---                                                claude_code's `implement`; result must already
 ---                                                match the op schema - it is NOT re-validated)
-local config = require("reins.config")
-local events = require("reins.events")
-local prompts = require("reins.prompts")
-local schema = require("reins.schema")
-local util = require("reins.util")
+local config = require("stick-shift.config")
+local events = require("stick-shift.events")
+local prompts = require("stick-shift.prompts")
+local schema = require("stick-shift.schema")
+local util = require("stick-shift.util")
 
 local M = {}
 
@@ -136,7 +136,7 @@ end
 ---@param ctx table
 ---@return table<string, any>
 local function template_vars(ctx)
-  local autonomy = require("reins.autonomy")
+  local autonomy = require("stick-shift.autonomy")
   local buffer = ctx.buffer or {}
   local tests = ctx.tests or {}
   return {

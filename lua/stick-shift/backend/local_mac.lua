@@ -7,11 +7,11 @@
 ---exercised by headless tests against canned/scripted responses, but it has
 ---NOT been run against a real MLX/llama.cpp server on this machine (none is
 ---installed). available() is cheap (curl + config only); server reachability
----is probed by :checkhealth reins.
----TODO(reins): validate against a real local server (MLX `mlx_lm.server`,
+---is probed by :checkhealth stick-shift.
+---TODO(stick-shift): validate against a real local server (MLX `mlx_lm.server`,
 ---llama.cpp `llama-server`) and confirm response_format json_object handling.
-local config = require("reins.config")
-local util = require("reins.util")
+local config = require("stick-shift.config")
+local util = require("stick-shift.util")
 
 local M = { name = "local_mac" }
 
@@ -21,8 +21,8 @@ local function bcfg()
 end
 
 ---Cheap check only: curl present + url configured. available() runs on the
----main loop (e.g. :ReinsBackend), so it must never block on the network -
----actual server reachability ({url}/models) is probed by :checkhealth reins.
+---main loop (e.g. :StickShiftBackend), so it must never block on the network -
+---actual server reachability ({url}/models) is probed by :checkhealth stick-shift.
 ---@return boolean ok, string|nil msg
 function M.available()
   if vim.fn.executable("curl") ~= 1 then
@@ -33,7 +33,7 @@ function M.available()
     return false, "backends.local_mac.url is not configured"
   end
   return true,
-    ("curl found; %s configured (reachability is checked by :checkhealth reins; adapter tested against canned responses only)"):format(
+    ("curl found; %s configured (reachability is checked by :checkhealth stick-shift; adapter tested against canned responses only)"):format(
       url
     )
 end

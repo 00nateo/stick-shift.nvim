@@ -1,7 +1,7 @@
--- Offline tests for lua/reins/autonomy.lua: the full 0-4 gating matrix,
+-- Offline tests for lua/stick-shift/autonomy.lua: the full 0-4 gating matrix,
 -- allows() config interplay, level()/name(), transcript_mode(), plan_editable().
-local config = require("reins.config")
-local autonomy = require("reins.autonomy")
+local config = require("stick-shift.config")
+local autonomy = require("stick-shift.autonomy")
 
 local function eq(got, want, label)
   if not vim.deep_equal(got, want) then

@@ -1,4 +1,4 @@
----@brief Shared helpers for reins.nvim: fs, json, paths, notify, debounce.
+---@brief Shared helpers for stick-shift.nvim: fs, json, paths, notify, debounce.
 local M = {}
 
 local islist = vim.islist or vim.tbl_islist
@@ -32,7 +32,7 @@ end
 ---@param msg string
 ---@param level integer|nil vim.log.levels.*, default INFO
 function M.notify(msg, level)
-  vim.notify("[reins] " .. msg, level or vim.log.levels.INFO)
+  vim.notify("[stick-shift] " .. msg, level or vim.log.levels.INFO)
 end
 
 function M.warn(msg)
@@ -79,15 +79,15 @@ function M.exists(path)
   return vim.uv.fs_stat(path) ~= nil
 end
 
----Root of the reins.nvim plugin itself (for locating prompts/).
+---Root of the stick-shift.nvim plugin itself (for locating prompts/).
 ---@return string
 function M.plugin_root()
   local src = debug.getinfo(1, "S").source:sub(2)
-  -- src = <root>/lua/reins/util.lua
+  -- src = <root>/lua/stick-shift/util.lua
   return vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(src)))
 end
 
----Project root for the current buffer: nearest ancestor containing `.reins`
+---Project root for the current buffer: nearest ancestor containing `.stick-shift`
 ---or `.git`, else the cwd. Works headless (unnamed buffer -> cwd).
 ---@param bufpath string|nil
 ---@return string
@@ -96,7 +96,7 @@ function M.project_root(bufpath)
   if start == nil or start == "" then
     start = assert(vim.uv.cwd())
   end
-  local found = vim.fs.root(start, { ".reins", ".git" })
+  local found = vim.fs.root(start, { ".stick-shift", ".git" })
   return found or assert(vim.uv.cwd())
 end
 

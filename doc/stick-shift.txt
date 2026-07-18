@@ -1,73 +1,73 @@
-*reins.txt*    AI pair-programming harness with a configurable autonomy level
+*stick-shift.txt*    AI pair-programming harness with a configurable autonomy level
 
-Author:  reins.nvim contributors
+Author:  stick-shift.nvim contributors
 License: MIT (see LICENSE)
 
 ==============================================================================
-CONTENTS                                                               *reins*
+CONTENTS                                                               *stick-shift*
 
-  1. Introduction ......................... |reins-introduction|
-  2. Setup ................................ |reins-setup|
-  3. The autonomy ladder .................. |reins-autonomy|
-  4. Configuration ........................ |reins-config|
-  5. Commands ............................. |reins-commands|
-  6. The living plan ...................... |reins-plan|
-  7. Verify ............................... |reins-verify|
-  8. Inline completion .................... |reins-completion|
-  9. Hint ................................. |reins-hint|
- 10. Backends ............................. |reins-backends|
- 11. Safety ............................... |reins-safety|
- 12. Health ............................... |reins-health|
- 13. Developing ........................... |reins-develop|
+  1. Introduction ......................... |stick-shift-introduction|
+  2. Setup ................................ |stick-shift-setup|
+  3. The autonomy ladder .................. |stick-shift-autonomy|
+  4. Configuration ........................ |stick-shift-config|
+  5. Commands ............................. |stick-shift-commands|
+  6. The living plan ...................... |stick-shift-plan|
+  7. Verify ............................... |stick-shift-verify|
+  8. Inline completion .................... |stick-shift-completion|
+  9. Hint ................................. |stick-shift-hint|
+ 10. Backends ............................. |stick-shift-backends|
+ 11. Safety ............................... |stick-shift-safety|
+ 12. Health ............................... |stick-shift-health|
+ 13. Developing ........................... |stick-shift-develop|
 
 ==============================================================================
-1. INTRODUCTION                                           *reins-introduction*
+1. INTRODUCTION                                           *stick-shift-introduction*
 
-reins.nvim is a configurable handicap on AI assistance. A single autonomy
+stick-shift.nvim is a configurable handicap on AI assistance. A single autonomy
 level (0-4) governs how much the AI does: at its most permissive it behaves
 like a full coding agent; dialed down, the AI does less of the writing and
 more of the scaffolding of thought - it helps you start, keeps direction,
 and checks your work - while you make the decisions and do the typing.
 
 Its centerpiece is a living plan the AI maintains as working memory (see
-|reins-plan|), surfaced as a "current step" with Verify and Next controls.
+|stick-shift-plan|), surfaced as a "current step" with Verify and Next controls.
 Around it: leveled inline ghost-text completion, a one-sentence hint, and a
 panel that acts as a control surface, not a chat window. How much raw AI
 output is visible is itself configurable, down to nothing but a button and a
 hint.
 
 ==============================================================================
-2. SETUP                                                         *reins-setup*
+2. SETUP                                                         *stick-shift-setup*
 
 Requires Neovim 0.11+, git, and the tools for whichever backend you use
-(see |reins-backends|). Install with your plugin manager, then: >lua
+(see |stick-shift-backends|). Install with your plugin manager, then: >lua
 
-    require("reins").setup({})
+    require("stick-shift").setup({})
 <
 With lazy.nvim: >lua
 
-    { "reins-nvim/reins.nvim", opts = {} }
+    { "00nateo/stick-shift.nvim", opts = {} }
 <
 With Neovim 0.12's vim.pack (per the 0.12 docs; untested on 0.11): >lua
 
-    vim.pack.add({ { src = "https://github.com/reins-nvim/reins.nvim" } })
-    require("reins").setup({})
+    vim.pack.add({ { src = "https://github.com/00nateo/stick-shift.nvim" } })
+    require("stick-shift").setup({})
 <
 Then, in a project: >vim
 
-    :ReinsGoal build a todo CLI in Lua
+    :StickShiftGoal build a todo CLI in Lua
     " ... write code for the current step ...
-    :ReinsVerify
-    :ReinsNext
+    :StickShiftVerify
+    :StickShiftNext
 <
 To try the plugin offline with no API key, use `backend = "mock"`.
 
 ==============================================================================
-3. THE AUTONOMY LADDER                                        *reins-autonomy*
+3. THE AUTONOMY LADDER                                        *stick-shift-autonomy*
 
 One integer, 0-4, gates every feature. It is a real gating table (see
-`lua/reins/autonomy.lua`), not a prompt suggestion, and it is decoupled from
-model choice (|reins-backends|). Change it with |:ReinsAutonomy| or the
+`lua/stick-shift/autonomy.lua`), not a prompt suggestion, and it is decoupled from
+model choice (|stick-shift-backends|). Change it with |:StickShiftAutonomy| or the
 cycle keymap at any time.
 
   Level  Name           Authority                       Buffer writes ~
@@ -75,7 +75,7 @@ cycle keymap at any time.
   4      autopilot      full agent, prompt in code out  agent, freely
                                                         (checkpointed)
   3      driver-assist  agent implements the current    agent, on explicit
-                        step on request, stops at       :ReinsImplement
+                        step on request, stops at       :StickShiftImplement
                         step boundaries
   2      co-pilot       AI plans and verifies; the      human only
          (default)      human types the code
@@ -102,13 +102,13 @@ Overrides: `completion.force = true` enables completion below level 2;
 the transcript default; `hint.enabled`/`hint.trigger` gate hints.
 
 ==============================================================================
-4. CONFIGURATION                                                *reins-config*
+4. CONFIGURATION                                                *stick-shift-config*
 
-Call `require("reins").setup({...})` with any subset of the defaults below.
+Call `require("stick-shift").setup({...})` with any subset of the defaults below.
 Unknown keys produce a warning; invalid values warn and fall back to the
 default; `autonomy` is clamped to 0..4. >lua
 
-    require("reins").setup({
+    require("stick-shift").setup({
       autonomy = 2,
       backend  = "claude_code", -- "claude_code"|"acp"|"ollama"
                                 -- |"local_mac"|"mock"
@@ -121,7 +121,7 @@ default; `autonomy` is clamped to 0..4. >lua
       },
       ui = {
         layout = "right",       -- "left"|"top"|"right"|"bottom"|"float"
-                                -- (movable at runtime via :Reins {layout})
+                                -- (movable at runtime via :StickShift {layout})
         transcript = nil,       -- nil = derive from autonomy;
                                 -- else "full"|"summary"|"hidden"
         open_on_start = false,  -- NOTE: at autonomy 3-4 the panel opens on
@@ -151,7 +151,7 @@ default; `autonomy` is clamped to 0..4. >lua
         timeout_ms = 120000,
       },
       git = {
-        tag_commits = false,    -- "Reins-Autonomy: N (name)" trailer
+        tag_commits = false,    -- "StickShift-Autonomy: N (name)" trailer
         checkpoint = true,      -- snapshot before agent edits (3-4)
       },
       backends = {
@@ -175,11 +175,11 @@ default; `autonomy` is clamped to 0..4. >lua
         },
       },
       keymaps = {               -- set any to false to disable
-        toggle_panel = "<leader>rr",
-        verify = "<leader>rv",
-        next = "<leader>rn",
-        cycle_autonomy = "<leader>ra",
-        hint = "<leader>rh",
+        toggle_panel = "<leader>ss",
+        verify = "<leader>sv",
+        next = "<leader>sn",
+        cycle_autonomy = "<leader>sa",
+        hint = "<leader>sh",
       },
     })
 <
@@ -189,7 +189,7 @@ or a table `{ backend = "<adapter>", model = "<name>" }` that pins a
 DIFFERENT adapter for that role. Example - cheap local models for the
 high-frequency roles, frontier for the plan-shaping ones: >lua
 
-    require("reins").setup({
+    require("stick-shift").setup({
       backend = "claude_code",
       models = {
         ghost = { backend = "ollama", model = "qwen3-coder:30b" },
@@ -201,76 +201,76 @@ high-frequency roles, frontier for the plan-shaping ones: >lua
     })
 <
 ==============================================================================
-5. COMMANDS                                                   *reins-commands*
+5. COMMANDS                                                   *stick-shift-commands*
 
-                                                                      *:Reins*
-:Reins                  Toggle the panel.
+                                                                      *:StickShift*
+:StickShift                  Toggle the panel.
 
-:Reins {layout}         Move the panel to {layout}: one of "left", "right",
+:StickShift {layout}         Move the panel to {layout}: one of "left", "right",
                         "top", "bottom", "float". Opens the panel when it is
                         closed. An explicit choice here wins over
-                        |reins-config| `ui.layout` until changed again.
+                        |stick-shift-config| `ui.layout` until changed again.
 
-                                                                  *:ReinsGoal*
-:ReinsGoal {text}       Set the goal and create (or re-create) the living
+                                                                  *:StickShiftGoal*
+:StickShiftGoal {text}       Set the goal and create (or re-create) the living
                         plan. This is the entry point. Without {text},
                         prompts for input.
 
-                                                    *:ReinsPlan* *:ReinsPlan!*
-:ReinsPlan              Open the rendered plan (`.reins/plan.md`) read-only.
+                                                    *:StickShiftPlan* *:StickShiftPlan!*
+:StickShiftPlan              Open the rendered plan (`.stick-shift/plan.md`) read-only.
                         The plan is always inspectable, at every level.
-:ReinsPlan!             Edit `.reins/plan.json` directly. Editing the AI's
+:StickShiftPlan!             Edit `.stick-shift/plan.json` directly. Editing the AI's
                         working memory is a low-autonomy affordance,
                         available at levels <= 2 only. Lifecycle operations
                         reload the plan from disk, so manual edits are
                         respected.
 
-                                                                *:ReinsVerify*
-:ReinsVerify            Verify the current step. See |reins-verify|.
+                                                                *:StickShiftVerify*
+:StickShiftVerify            Verify the current step. See |stick-shift-verify|.
 
-                                                                  *:ReinsNext*
-:ReinsNext              Advance the plan: the next (intentionally vague)
+                                                                  *:StickShiftNext*
+:StickShiftNext              Advance the plan: the next (intentionally vague)
                         step gets its detail filled in and becomes current;
                         later steps are reshaped if decisions changed.
                         Advancing past an unverified step marks it
                         `skipped` (with a warning), never `verified`.
 
-                                                             *:ReinsImplement*
-:ReinsImplement         Let the agent implement the current step. Requires
+                                                             *:StickShiftImplement*
+:StickShiftImplement         Let the agent implement the current step. Requires
                         autonomy >= 3. Checkpoints first when
-                        `git.checkpoint` is enabled (|reins-safety|).
+                        `git.checkpoint` is enabled (|stick-shift-safety|).
 
-                                                                  *:ReinsHint*
-:ReinsHint              Show a one-sentence hint at the cursor. Available
+                                                                  *:StickShiftHint*
+:StickShiftHint              Show a one-sentence hint at the cursor. Available
                         at all levels; it is the only feature at level 0.
 
-                                                              *:ReinsAutonomy*
-:ReinsAutonomy {0..4}   Set the autonomy level. Without an argument, shows
+                                                              *:StickShiftAutonomy*
+:StickShiftAutonomy {0..4}   Set the autonomy level. Without an argument, shows
                         the current level and name.
 
-                                                               *:ReinsBackend*
-:ReinsBackend {name}    Switch the active backend adapter. Without an
+                                                               *:StickShiftBackend*
+:StickShiftBackend {name}    Switch the active backend adapter. Without an
                         argument, shows the active one. Completion offers
                         the registered adapter names.
 
-                                                                *:ReinsRevert*
-:ReinsRevert            Restore the working tree to the last checkpoint,
-                        after confirmation. See |reins-safety| for the
+                                                                *:StickShiftRevert*
+:StickShiftRevert            Restore the working tree to the last checkpoint,
+                        after confirmation. See |stick-shift-safety| for the
                         new-files limitation.
 
 Default global keymaps (normal mode; configurable, `false` disables):
-`<leader>rr` toggle panel, `<leader>rv` verify, `<leader>rn` next,
-`<leader>ra` cycle autonomy (0->1->2->3->4->0), `<leader>rh` hint.
+`<leader>ss` toggle panel, `<leader>sv` verify, `<leader>sn` next,
+`<leader>sa` cycle autonomy (0->1->2->3->4->0), `<leader>sh` hint.
 
 ==============================================================================
-6. THE LIVING PLAN                                                *reins-plan*
+6. THE LIVING PLAN                                                *stick-shift-plan*
 
 The plan is an ordered list of steps that serves as the AI's working memory
 across the session. Properties:
 
 - Detail gradient: the current step is the most detailed; later steps are
   intentionally vague (`detail_rank` encodes this). Far-term
-  over-specification is wasted effort, so detail is filled in on |:ReinsNext|.
+  over-specification is wasted effort, so detail is filled in on |:StickShiftNext|.
 - It mutates: the plan follows the code, not the other way around. Verify
   and Next may reshape later steps; every reshape is appended to the
   decision log.
@@ -283,32 +283,32 @@ Step statuses:
 
   pending    not started; detail may still be vague
   active     the current step
-  verified   passed |reins-verify| (LLM verdict positive AND tests, if any
+  verified   passed |stick-shift-verify| (LLM verdict positive AND tests, if any
              ran, passed)
   skipped    the user advanced past it without a successful verify - an
              honest extension to the spec's pending/active/verified, so
              history never pretends work was checked when it was not
 
-Storage, under the project root (nearest `.reins` or `.git` directory, else
+Storage, under the project root (nearest `.stick-shift` or `.git` directory, else
 the current directory):
 
-  `.reins/plan.json`         source of truth, includes the backend session
+  `.stick-shift/plan.json`         source of truth, includes the backend session
                            id so reasoning context survives restarts
-  `.reins/plan.md`           human-readable render (what |:ReinsPlan| shows)
-  `.reins/decisions.log`     append-only decision log
-  `.reins/checkpoints.json`  checkpoint refs (|reins-safety|)
-  `.reins/.gitignore`        contains `*` - the directory ignores itself by
+  `.stick-shift/plan.md`           human-readable render (what |:StickShiftPlan| shows)
+  `.stick-shift/decisions.log`     append-only decision log
+  `.stick-shift/checkpoints.json`  checkpoint refs (|stick-shift-safety|)
+  `.stick-shift/.gitignore`        contains `*` - the directory ignores itself by
                            default; delete this file to track the plan
 
 Visibility: the panel defaults to showing only the current step
 (`plan.visibility = "current-only"`), but the plan is NEVER a permanently
-invisible black box - `:ReinsPlan` works at every level, and `:ReinsPlan!`
+invisible black box - `:StickShiftPlan` works at every level, and `:StickShiftPlan!`
 lets you rewrite it at levels <= 2.
 
 ==============================================================================
-7. VERIFY                                                       *reins-verify*
+7. VERIFY                                                       *stick-shift-verify*
 
-|:ReinsVerify| is an isolated-subtask correctness gate: the verification
+|:StickShiftVerify| is an isolated-subtask correctness gate: the verification
 prompt carries only scoped context, runs in a separate model invocation, and
 only a structured summary returns to the plan. It is scoped, never a
 full-repo reread:
@@ -340,10 +340,10 @@ full-repo reread:
    positive and tests (if any ran) passed.
 
 Verify may also record changed decisions and reshape later steps
-(`plan_delta`); both are appended to `.reins/decisions.log`.
+(`plan_delta`); both are appended to `.stick-shift/decisions.log`.
 
 ==============================================================================
-8. INLINE COMPLETION                                        *reins-completion*
+8. INLINE COMPLETION                                        *stick-shift-completion*
 
 Ghost-text completion ahead of the cursor, available at autonomy >= 2 (or
 anywhere with `completion.force = true`; `completion.level = "off"` disables
@@ -357,13 +357,13 @@ key (default <Tab>) inserts the suggestion and falls through to the normal
 key when no suggestion is visible, so <Tab> still indents.
 
 Accepting a completion acquires the single-writer buffer lock
-(|reins-safety|); displaying ghost text is lock-free. Completions are served
+(|stick-shift-safety|); displaying ghost text is lock-free. Completions are served
 by the `ghost` model role - typically a cheap or local model.
 
-Highlight: `ReinsGhost` (links to `Comment` by default).
+Highlight: `StickShiftGhost` (links to `Comment` by default).
 
 ==============================================================================
-9. HINT                                                           *reins-hint*
+9. HINT                                                           *stick-shift-hint*
 
 One sentence of direction ("where to go next", not code), rendered as
 unobtrusive virtual text at the cursor line in a dedicated namespace - it
@@ -374,23 +374,23 @@ Available at ALL autonomy levels; it is the only feature at level 0. With
 rate-limited. Length is capped at `hint.max_len`. Hints read the current
 step's intent and are served by the cheap `hint` model role.
 
-Highlight: `ReinsHint` (links to `DiagnosticVirtualTextHint` by default).
+Highlight: `StickShiftHint` (links to `DiagnosticVirtualTextHint` by default).
 
 ==============================================================================
-10. BACKENDS                                                  *reins-backends*
+10. BACKENDS                                                  *stick-shift-backends*
 
 All backends implement one adapter interface and can be switched at runtime
-with |:ReinsBackend|. Per-role model routing (|reins-config|) may pin
+with |:StickShiftBackend|. Per-role model routing (|stick-shift-config|) may pin
 different adapters per role regardless of the active backend.
 
 claude_code (default) ~
   Runs the `claude` CLI headless: `-p` with a JSON output envelope for
   one-shot operations; the session id is stored in `plan.json` and resumed
   across calls so reasoning context survives restarts. For
-  |:ReinsImplement| it streams the agent's events into the transcript.
-  Usage terms note: reins drives the CLI as YOUR OWN authenticated tool -
+  |:StickShiftImplement| it streams the agent's events into the transcript.
+  Usage terms note: stick-shift drives the CLI as YOUR OWN authenticated tool -
   interactive, user-initiated calls only; no background daemon hammering
-  it; reins never embeds, reads, or logs credentials. Use it within the
+  it; stick-shift never embeds, reads, or logs credentials. Use it within the
   terms of your Claude subscription.
 
 ollama ~
@@ -400,7 +400,7 @@ ollama ~
 acp ~
   Agent Client Protocol client (JSON-RPC over stdio) for ACP agents,
   spawned from `backends.acp.command`. In first integration; check
-  |:checkhealth| reins for its current availability.
+  |:checkhealth| stick-shift for its current availability.
 
 local_mac ~
   OpenAI-compatible local server (MLX etc.) at `backends.local_mac.url`.
@@ -408,7 +408,7 @@ local_mac ~
 
 mock ~
   Deterministic canned responses. Makes the entire core loop runnable
-  offline with no key; used by the test suite. reins falls back to mock
+  offline with no key; used by the test suite. stick-shift falls back to mock
   with a warning when the configured backend is not registered.
 
 Structured output contract: plan/verify/next/hint/completion responses are
@@ -417,7 +417,7 @@ more for valid JSON, then a clean error surfaces. Free-form model text is
 never trusted for control flow.
 
 ==============================================================================
-11. SAFETY                                                      *reins-safety*
+11. SAFETY                                                      *stick-shift-safety*
 
 Single-writer buffer lock ~
   Completion-accept and agent edits must each acquire a per-buffer lock;
@@ -425,12 +425,12 @@ Single-writer buffer lock ~
   the same buffer at once. Ghost text DISPLAY is lock-free; ACCEPTING it
   takes the lock.
 
-Checkpoints and :ReinsRevert ~
+Checkpoints and :StickShiftRevert ~
   At levels 3-4, before the agent writes (when `git.checkpoint` is true), a
   non-mutating git snapshot is taken - a commit object created via
   plumbing with a temporary index, so untracked files are included and
   your index, HEAD, and stash are untouched. Refs are recorded in
-  `.reins/checkpoints.json`. |:ReinsRevert| restores the working tree and
+  `.stick-shift/checkpoints.json`. |:StickShiftRevert| restores the working tree and
   index from the most recent snapshot after confirmation.
 
   LIMITATION: the restore overwrites tracked-at-snapshot files but does
@@ -438,22 +438,22 @@ Checkpoints and :ReinsRevert ~
   `git status` and remove leftover new files by hand if needed.
 
 Decision log ~
-  `.reins/decisions.log` is append-only: one line per meaningful course
+  `.stick-shift/decisions.log` is append-only: one line per meaningful course
   change (plan created, step advanced, decision changed, step reshaped,
   checkpoint taken).
 
 Autonomy-tagged commits ~
   Opt-in via `git.tag_commits`: commit-message buffers ('gitcommit'
-  filetype) get a trailer like `Reins-Autonomy: 2 (co-pilot)` inserted
+  filetype) get a trailer like `StickShift-Autonomy: 2 (co-pilot)` inserted
   automatically, so history shows how much was machine-assisted. Delete
   the line before saving to opt out of tagging a single commit.
 
 ==============================================================================
-12. HEALTH                                                      *reins-health*
+12. HEALTH                                                      *stick-shift-health*
 
 Run: >vim
 
-    :checkhealth reins
+    :checkhealth stick-shift
 <
 Reports: Neovim version (0.11 required; 0.12-only features are noted), git
 presence and version, prompt templates readable, each registered backend's
@@ -462,7 +462,7 @@ registered), the active backend, the detected test command for the current
 project, and whether a plan exists.
 
 ==============================================================================
-13. DEVELOPING                                                 *reins-develop*
+13. DEVELOPING                                                 *stick-shift-develop*
 
 Repository scripts: >sh
 
@@ -478,7 +478,7 @@ Repository scripts: >sh
 Writing a backend adapter ~
 
 An adapter is a plain table registered with
-`require("reins.backend").register(name, adapter)`: >lua
+`require("stick-shift.backend").register(name, adapter)`: >lua
 
     adapter.name                    -- string (set by register if absent)
     adapter.available()             -- -> boolean, string|nil (health; cheap)
@@ -497,9 +497,9 @@ An adapter is a plain table registered with
       -- rendering AND schema validation: the result must already match
       -- the op's schema.
 <
-The shared runner in `lua/reins/backend/init.lua` handles prompt rendering
+The shared runner in `lua/stick-shift/backend/init.lua` handles prompt rendering
 (templates in `prompts/v1/`), JSON parsing, schema validation, and the
 retry-once-then-clean-error policy, so a minimal adapter only implements
-`generate()`. `lua/reins/backend/mock.lua` is the reference implementation.
+`generate()`. `lua/stick-shift/backend/mock.lua` is the reference implementation.
 
 vim:tw=78:ts=8:noet:ft=help:norl:

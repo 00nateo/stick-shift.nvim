@@ -1,4 +1,4 @@
--- Offline tests for lua/reins/complete.lua: granularity trimming through the
+-- Offline tests for lua/stick-shift/complete.lua: granularity trimming through the
 -- real request path (mock backend, synchronous callbacks) and accept()'s
 -- position defensiveness (regression: stale suggestions after <C-c> must never
 -- teleport text to an old position).
@@ -8,21 +8,21 @@ local T = {}
 ---@return table complete, table mock
 local function fresh(completion)
   for name in pairs(package.loaded) do
-    if name:match("^reins") then
+    if name:match("^stick%-shift") then
       package.loaded[name] = nil
     end
   end
-  require("reins.config").setup({
+  require("stick-shift.config").setup({
     backend = "mock",
     autonomy = 2,
     completion = completion or { level = "word" },
   })
-  local backend = require("reins.backend")
-  local mock = require("reins.backend.mock")
+  local backend = require("stick-shift.backend")
+  local mock = require("stick-shift.backend.mock")
   mock.reset()
   backend.register("mock", mock)
   assert(backend.use("mock"))
-  return require("reins.complete"), mock
+  return require("stick-shift.complete"), mock
 end
 
 ---A normal listed file-buffer (buftype "", modifiable) made current.
@@ -99,7 +99,7 @@ end
 
 T["request: gated off at autonomy 1 without force"] = function()
   local complete, mock = fresh()
-  require("reins.config").get().autonomy = 1
+  require("stick-shift.config").get().autonomy = 1
   local buf = scratch_current_buf({ "text" })
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
   complete._request(buf)

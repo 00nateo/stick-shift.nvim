@@ -1,4 +1,4 @@
--- Offline tests for lua/reins/backend/init.lua: adapter registry, per-role
+-- Offline tests for lua/stick-shift/backend/init.lua: adapter registry, per-role
 -- model routing, and the shared protocol runner (prompt render -> generate ->
 -- parse -> schema-validate -> retry once -> clean error). The retry path is
 -- the load-bearing honesty mechanism: model text is never trusted raw.
@@ -8,17 +8,17 @@ local T = {}
 ---registry, so per-FILE purging (the runner's) is not fine-grained enough.
 local function fresh()
   for name in pairs(package.loaded) do
-    if name:match("^reins") then
+    if name:match("^stick%-shift") then
       package.loaded[name] = nil
     end
   end
-  require("reins.config").setup({ backend = "mock" })
-  local backend = require("reins.backend")
-  local mock = require("reins.backend.mock")
+  require("stick-shift.config").setup({ backend = "mock" })
+  local backend = require("stick-shift.backend")
+  local mock = require("stick-shift.backend.mock")
   mock.reset()
   backend.register("mock", mock)
   assert(backend.use("mock"))
-  return backend, mock, require("reins.config")
+  return backend, mock, require("stick-shift.config")
 end
 
 ---Minimal generate-only adapter; `replies` is consumed one string per call.
@@ -235,7 +235,7 @@ T["call: a throwing prompt render arrives as a cb error, never an exception"] = 
   local adapter = scripted_adapter({ '{"steps": []}' })
   backend.register("scripted", adapter)
   assert(backend.use("scripted"))
-  local prompts = require("reins.prompts")
+  local prompts = require("stick-shift.prompts")
   local orig = prompts.render
   prompts.render = function()
     error("boom: template missing")

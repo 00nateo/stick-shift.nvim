@@ -1,4 +1,4 @@
--- Self-contained offline test runner for reins.nvim:
+-- Self-contained offline test runner for stick-shift.nvim:
 --   nvim --headless -l tests/run.lua
 -- No plenary/busted. Each tests/test_*.lua returns { ["test name"] = fn };
 -- every test runs in a pcall. Exit code = number of failures.
@@ -12,18 +12,18 @@ package.path = tests_dir .. "/?.lua;" .. package.path
 -- report stays readable (assertion failures still print below).
 vim.notify = function() end
 
----Reset reins state between test FILES so nothing can leak: explicit registry
+---Reset stick-shift state between test FILES so nothing can leak: explicit registry
 ---resets first (event handlers, buffer locks, mock overrides), then a hard
 ---purge so the next file require()s everything fresh.
-local function purge_reins()
-  for _, name in ipairs({ "reins.events", "reins.lock", "reins.backend.mock" }) do
+local function purge_plugin()
+  for _, name in ipairs({ "stick-shift.events", "stick-shift.lock", "stick-shift.backend.mock" }) do
     local mod = package.loaded[name]
     if type(mod) == "table" and type(mod.reset) == "function" then
       pcall(mod.reset)
     end
   end
   for name in pairs(package.loaded) do
-    if name:match("^reins") then
+    if name:match("^stick%-shift") then
       package.loaded[name] = nil
     end
   end
@@ -43,7 +43,7 @@ table.sort(files)
 
 local passed, failed = 0, 0
 for _, file in ipairs(files) do
-  purge_reins()
+  purge_plugin()
   local label = vim.fn.fnamemodify(file, ":t:r")
   local chunk, load_err = loadfile(file)
   local ok, suite
@@ -70,7 +70,7 @@ for _, file in ipairs(files) do
     end
   end
 end
-purge_reins()
+purge_plugin()
 
 print(("\n%d passed, %d failed"):format(passed, failed))
 os.exit(failed)

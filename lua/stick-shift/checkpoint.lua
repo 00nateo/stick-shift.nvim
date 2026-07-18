@@ -1,11 +1,11 @@
 ---@brief Per-step checkpointing: non-mutating git snapshots (including
----untracked files) taken before agent-driven edits, plus :ReinsRevert.
+---untracked files) taken before agent-driven edits, plus :StickShiftRevert.
 ---
 ---The snapshot is built with plumbing against a TEMPORARY index file
 ---(GIT_INDEX_FILE), so the working tree and the user's real index are never
 ---touched. The resulting commit is anchored to HEAD (when one exists) but is
 ---not referenced by any branch; it is reachable only via
----.reins/checkpoints.json. `git gc` may prune unreferenced snapshots after
+---.stick-shift/checkpoints.json. `git gc` may prune unreferenced snapshots after
 ---its expiry window (~2 weeks by default) - checkpoints are a session safety
 ---net, not long-term backups.
 ---
@@ -13,16 +13,16 @@
 ---in the snapshot but does NOT delete files created after the snapshot was
 ---taken. After a revert, newly-created files remain on disk (visible via
 ---`git status`) and must be removed by hand if unwanted.
-local autonomy = require("reins.autonomy")
-local git = require("reins.git")
-local store = require("reins.plan.store")
-local util = require("reins.util")
+local autonomy = require("stick-shift.autonomy")
+local git = require("stick-shift.git")
+local store = require("stick-shift.plan.store")
+local util = require("stick-shift.util")
 
 local M = {}
 
 local MAX_ENTRIES = 50
 
----@class reins.Checkpoint
+---@class stick-shift.Checkpoint
 ---@field ref string commit (or stash) sha
 ---@field label string human-readable reason for the snapshot
 ---@field at string ISO-8601 timestamp
@@ -35,7 +35,7 @@ end
 
 ---Checkpoints recorded for this project, oldest first / newest last.
 ---@param root string
----@return reins.Checkpoint[]
+---@return stick-shift.Checkpoint[]
 function M.list(root)
   local content = util.read_file(json_path(root))
   if not content then
@@ -49,7 +49,7 @@ function M.list(root)
 end
 
 ---@param root string
----@return reins.Checkpoint|nil
+---@return stick-shift.Checkpoint|nil
 function M.last(root)
   local entries = M.list(root)
   return entries[#entries]
@@ -125,7 +125,7 @@ end
 ---@return string|nil ref commit sha, nil on failure
 ---@return string|nil err
 function M.snapshot(root, label)
-  label = (label and label ~= "") and label or "reins checkpoint"
+  label = (label and label ~= "") and label or "stick-shift checkpoint"
   if not git.available() then
     return nil, "git is not installed"
   end
@@ -214,9 +214,9 @@ end
 
 ---Commit trailer advertising how much AI autonomy was active (opt-in via
 ---config.git.tag_commits).
----@return string e.g. "Reins-Autonomy: 2 (co-pilot)"
+---@return string e.g. "StickShift-Autonomy: 2 (co-pilot)"
 function M.trailer()
-  return ("Reins-Autonomy: %d (%s)"):format(autonomy.level(), autonomy.name())
+  return ("StickShift-Autonomy: %d (%s)"):format(autonomy.level(), autonomy.name())
 end
 
 ---Append the autonomy trailer to a commit message string (idempotent).
@@ -224,7 +224,7 @@ end
 ---@return string msg with trailer appended
 function M.apply_trailer(msg)
   msg = msg or ""
-  if msg:find("Reins%-Autonomy:") then
+  if msg:find("StickShift%-Autonomy:") then
     return msg
   end
   local trimmed = msg:gsub("%s+$", "")
@@ -233,7 +233,7 @@ end
 
 ---Insert the autonomy trailer into a gitcommit BUFFER: right under the last
 ---message line, above git's `#` comment block. Idempotent - a buffer that
----already carries a Reins-Autonomy trailer is left alone.
+---already carries a StickShift-Autonomy trailer is left alone.
 ---@param buf integer
 function M.buf_apply_trailer(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
@@ -241,7 +241,7 @@ function M.buf_apply_trailer(buf)
   end
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   for _, l in ipairs(lines) do
-    if l:find("^Reins%-Autonomy:") then
+    if l:find("^StickShift%-Autonomy:") then
       return
     end
   end
@@ -265,13 +265,13 @@ end
 ---buffer gets the autonomy trailer inserted on open. The config flag is read
 ---at fire time, so toggling it mid-session works.
 function M.setup()
-  local group = vim.api.nvim_create_augroup("reins.checkpoint", { clear = true })
+  local group = vim.api.nvim_create_augroup("stick-shift.checkpoint", { clear = true })
   vim.api.nvim_create_autocmd("FileType", {
     group = group,
     pattern = "gitcommit",
-    desc = "reins: tag commit messages with the autonomy trailer (git.tag_commits)",
+    desc = "stick-shift: tag commit messages with the autonomy trailer (git.tag_commits)",
     callback = function(a)
-      local ok, cfg = pcall(require, "reins.config")
+      local ok, cfg = pcall(require, "stick-shift.config")
       if ok and cfg.get().git.tag_commits then
         M.buf_apply_trailer(a.buf)
       end

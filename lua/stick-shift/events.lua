@@ -1,6 +1,6 @@
 ---@brief Tiny pub/sub bus decoupling core logic from UI.
 ---
----Events used by reins:
+---Events used by stick-shift:
 ---  "autonomy_changed"  (new_level: integer)
 ---  "backend_changed"   (name: string)
 ---  "plan_updated"      (plan: table)
@@ -35,7 +35,7 @@ function M.emit(name, ...)
     local ok, err = pcall(fn, ...)
     if not ok then
       vim.schedule(function()
-        vim.notify("[reins] event handler error (" .. name .. "): " .. tostring(err), vim.log.levels.ERROR)
+        vim.notify("[stick-shift] event handler error (" .. name .. "): " .. tostring(err), vim.log.levels.ERROR)
       end)
     end
   end

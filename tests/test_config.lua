@@ -1,8 +1,8 @@
--- Offline tests for lua/reins/config.lua: defaults, deep-merge semantics,
+-- Offline tests for lua/stick-shift/config.lua: defaults, deep-merge semantics,
 -- declarative validation, autonomy clamping, and repeated-setup reset.
-local config = require("reins.config")
+local config = require("stick-shift.config")
 
--- Snapshot of M.current as it exists on a fresh require (runner purges reins.*
+-- Snapshot of M.current as it exists on a fresh require (runner purges stick-shift.*
 -- before each file), taken before any test can call setup().
 local pristine = vim.deepcopy(config.get())
 
@@ -84,7 +84,7 @@ end
 T["merge: false overrides a string default (keymaps)"] = function()
   local c = config.setup({ keymaps = { verify = false } })
   eq(c.keymaps.verify, false, "keymaps.verify disabled")
-  eq(c.keymaps.toggle_panel, "<leader>rr", "other keymaps kept")
+  eq(c.keymaps.toggle_panel, "<leader>ss", "other keymaps kept")
 end
 
 T["merge: any-model table replaces string alias wholesale"] = function()
@@ -105,7 +105,7 @@ T["merge: defaults table is never mutated by setup"] = function()
   })
   eq(config.defaults.autonomy, 2, "defaults.autonomy intact")
   eq(config.defaults.ui.width, 48, "defaults.ui.width intact")
-  eq(config.defaults.keymaps.verify, "<leader>rv", "defaults.keymaps.verify intact")
+  eq(config.defaults.keymaps.verify, "<leader>sv", "defaults.keymaps.verify intact")
   eq(config.defaults.models.plan, "frontier", "defaults.models.plan intact")
 end
 
@@ -205,7 +205,7 @@ T["setup: validation problems are surfaced via vim.notify warnings"] = function(
   assert(ok, tostring(err))
   eq(#seen, 2, "one warning per problem: " .. vim.inspect(seen))
   for _, n in ipairs(seen) do
-    assert(n.msg:find("[reins] config:", 1, true), "prefixed message, got: " .. n.msg)
+    assert(n.msg:find("[stick-shift] config:", 1, true), "prefixed message, got: " .. n.msg)
     eq(n.level, vim.log.levels.WARN, "warn level")
   end
   local found_enum, found_unknown = false, false
@@ -231,7 +231,7 @@ T["setup: repeated setup resets cleanly to defaults"] = function()
   local c = config.setup({})
   eq(c, config.defaults, "second setup({}) restores defaults exactly")
   eq(c.ui.transcript, nil, "previously-set nilable leaf cleared")
-  eq(c.keymaps.verify, "<leader>rv", "previously-disabled keymap restored")
+  eq(c.keymaps.verify, "<leader>sv", "previously-disabled keymap restored")
 end
 
 T["setup: direct mutation of current is discarded on next setup"] = function()

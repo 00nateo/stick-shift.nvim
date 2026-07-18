@@ -1,13 +1,13 @@
 ---@brief The autonomy ladder (0-4). Single source of truth for feature gating.
 ---Every module asks this table what it may do; nothing else encodes level logic.
-local config = require("reins.config")
+local config = require("stick-shift.config")
 
 local M = {}
 
----@class reins.Caps
+---@class stick-shift.Caps
 ---@field name string
 ---@field completion boolean ghost-text completion may run
----@field hint_manual boolean :ReinsHint / keymap works
+---@field hint_manual boolean :StickShiftHint / keymap works
 ---@field hint_auto boolean hint may fire on its own (still needs hint.trigger="auto")
 ---@field panel boolean the step panel has content (plan surfaced)
 ---@field verify boolean Verify step available
@@ -17,9 +17,9 @@ local M = {}
 ---@field transcript_default "full"|"summary"|"hidden"
 ---@field panel_open_default boolean open panel on setup
 
----Ordered gating table. Keep in sync with :help reins-autonomy and the tests,
+---Ordered gating table. Keep in sync with :help stick-shift-autonomy and the tests,
 ---which assert every cell.
----@type table<integer, reins.Caps>
+---@type table<integer, stick-shift.Caps>
 M.LEVELS = {
   [0] = {
     name = "hint-only",
@@ -94,7 +94,7 @@ function M.level()
 end
 
 ---@param level integer|nil defaults to the active level
----@return reins.Caps
+---@return stick-shift.Caps
 function M.caps(level)
   return M.LEVELS[level or M.level()]
 end
@@ -133,7 +133,7 @@ function M.transcript_mode()
   return config.get().ui.transcript or M.caps().transcript_default
 end
 
----Plan editing (:ReinsPlan!) is a low-autonomy affordance: the human may
+---Plan editing (:StickShiftPlan!) is a low-autonomy affordance: the human may
 ---rewrite the AI's working memory at levels <= 2.
 ---@return boolean
 function M.plan_editable()

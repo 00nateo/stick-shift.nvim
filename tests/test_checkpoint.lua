@@ -1,9 +1,9 @@
--- Offline tests for lua/reins/checkpoint.lua: non-mutating snapshots + revert,
+-- Offline tests for lua/stick-shift/checkpoint.lua: non-mutating snapshots + revert,
 -- exercised against throwaway git repos in temp dirs. All synchronous.
-require("reins.config").setup({ backend = "mock", autonomy = 2 })
-local checkpoint = require("reins.checkpoint")
-local git = require("reins.git")
-local util = require("reins.util")
+require("stick-shift.config").setup({ backend = "mock", autonomy = 2 })
+local checkpoint = require("stick-shift.checkpoint")
+local git = require("stick-shift.git")
+local util = require("stick-shift.util")
 
 local function tmpdir()
   local dir = vim.fn.tempname()
@@ -21,7 +21,7 @@ local function new_repo()
   local dir = tmpdir()
   run_ok(dir, { "init", "-q" })
   run_ok(dir, { "config", "user.email", "tests@example.invalid" })
-  run_ok(dir, { "config", "user.name", "Reins Tests" })
+  run_ok(dir, { "config", "user.name", "StickShift Tests" })
   run_ok(dir, { "config", "commit.gpgsign", "false" })
   return dir
 end
@@ -65,7 +65,7 @@ T["snapshot returns a sha, records it, and mutates nothing"] = function()
   assert(ref, "snapshot failed: " .. tostring(err))
   assert(ref:match("^%x+$") and #ref == 40, "expected 40-hex commit sha, got " .. tostring(ref))
 
-  -- recorded in .reins/checkpoints.json
+  -- recorded in .stick-shift/checkpoints.json
   local entries = checkpoint.list(dir)
   assert(#entries == 1, "exactly one checkpoint recorded, got " .. #entries)
   assert(entries[1].ref == ref and entries[1].label == "pre-agent", "recorded entry must match")
@@ -123,7 +123,7 @@ T["create/revert round trip restores tracked and untracked file content"] = func
   assert(read(dir .. "/loose.txt") == "untracked at checkpoint\n", "untracked-at-snapshot file must be restored")
   assert(git.head(dir) ~= nil and read(dir .. "/a.txt") ~= "original\n", "revert targets the checkpoint, not HEAD")
   -- the revert is logged in the decision log
-  local log = read(dir .. "/.reins/decisions.log")
+  local log = read(dir .. "/.stick-shift/decisions.log")
   assert(log:find("reverted working tree to checkpoint", 1, true), "decision log entry expected")
 end
 
@@ -147,17 +147,17 @@ end
 
 T["list tolerates a corrupt checkpoints.json"] = function()
   local dir = new_repo()
-  vim.fn.mkdir(dir .. "/.reins", "p")
-  write(dir .. "/.reins/checkpoints.json", "{ not json !!!")
+  vim.fn.mkdir(dir .. "/.stick-shift", "p")
+  write(dir .. "/.stick-shift/checkpoints.json", "{ not json !!!")
   local entries = checkpoint.list(dir)
   assert(type(entries) == "table" and #entries == 0, "corrupt json must read as no checkpoints")
 end
 
 T["apply_trailer appends the autonomy trailer exactly once"] = function()
   local msg = checkpoint.apply_trailer("fix: something")
-  assert(msg:find("Reins-Autonomy: 2 (co-pilot)", 1, true), "trailer with level+name expected, got: " .. msg)
+  assert(msg:find("StickShift-Autonomy: 2 (co-pilot)", 1, true), "trailer with level+name expected, got: " .. msg)
   local again = checkpoint.apply_trailer(msg)
-  local _, count = again:gsub("Reins%-Autonomy:", "")
+  local _, count = again:gsub("StickShift%-Autonomy:", "")
   assert(count == 1, "trailer must not be duplicated, found " .. count)
 end
 
@@ -168,7 +168,7 @@ T["buf_apply_trailer: inserts above the comment block, idempotently"] = function
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   assert(lines[1] == "fix: subject line", "subject intact")
   assert(lines[2] == "", "separator blank line kept")
-  assert(lines[3]:find("^Reins%-Autonomy: %d"), "trailer inserted, got: " .. tostring(lines[3]))
+  assert(lines[3]:find("^StickShift%-Autonomy: %d"), "trailer inserted, got: " .. tostring(lines[3]))
   assert(lines[4] == "" and lines[5]:find("^#"), "comment block preserved below")
   checkpoint.buf_apply_trailer(buf)
   assert(#vim.api.nvim_buf_get_lines(buf, 0, -1, false) == #lines, "second application must be a no-op")
@@ -180,12 +180,12 @@ T["buf_apply_trailer: empty message gets the trailer at the top"] = function()
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "", "# comment" })
   checkpoint.buf_apply_trailer(buf)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  assert(lines[1] == "" and lines[2]:find("^Reins%-Autonomy:"), table.concat(lines, "|"))
+  assert(lines[1] == "" and lines[2]:find("^StickShift%-Autonomy:"), table.concat(lines, "|"))
   vim.api.nvim_buf_delete(buf, { force = true })
 end
 
 T["setup: gitcommit FileType applies the trailer only when tag_commits is on"] = function()
-  local config = require("reins.config")
+  local config = require("stick-shift.config")
   checkpoint.setup()
 
   config.get().git.tag_commits = false
@@ -193,7 +193,7 @@ T["setup: gitcommit FileType applies the trailer only when tag_commits is on"] =
   vim.api.nvim_buf_set_lines(off, 0, -1, false, { "msg", "", "# comments" })
   vim.bo[off].filetype = "gitcommit"
   for _, l in ipairs(vim.api.nvim_buf_get_lines(off, 0, -1, false)) do
-    assert(not l:find("Reins%-Autonomy"), "trailer must NOT appear when tag_commits=false")
+    assert(not l:find("StickShift%-Autonomy"), "trailer must NOT appear when tag_commits=false")
   end
 
   config.get().git.tag_commits = true
@@ -202,7 +202,7 @@ T["setup: gitcommit FileType applies the trailer only when tag_commits is on"] =
   vim.bo[on].filetype = "gitcommit"
   local found = false
   for _, l in ipairs(vim.api.nvim_buf_get_lines(on, 0, -1, false)) do
-    found = found or l:find("^Reins%-Autonomy:") ~= nil
+    found = found or l:find("^StickShift%-Autonomy:") ~= nil
   end
   assert(found, "trailer must appear when tag_commits=true")
 

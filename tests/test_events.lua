@@ -1,10 +1,10 @@
--- Offline tests for lua/reins/events.lua: on/emit/unsubscribe, multiple
+-- Offline tests for lua/stick-shift/events.lua: on/emit/unsubscribe, multiple
 -- handlers, error containment, reset. Emit is synchronous; only the error
 -- report goes through vim.schedule, so those tests drain with vim.wait.
 local T = {}
 
 local function fresh()
-  local events = require("reins.events")
+  local events = require("stick-shift.events")
   events.reset()
   return events
 end

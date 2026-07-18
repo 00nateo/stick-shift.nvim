@@ -19,9 +19,9 @@
 --- --model, --verbose, and `--tools ""` (empty string) which disables all
 --- built-in tools. There is NO --max-turns flag in this version; the empty
 --- --tools list is what keeps one-shot generation from entering a tool loop.
-local config = require("reins.config")
-local events = require("reins.events")
-local prompts = require("reins.prompts")
+local config = require("stick-shift.config")
+local events = require("stick-shift.events")
+local prompts = require("stick-shift.prompts")
 
 local M = { name = "claude_code" }
 
@@ -197,7 +197,7 @@ function M.implement(_, ctx, cb)
   end
   -- Replicate the runner's template_vars minimally (it is local to
   -- backend/init.lua); the implement templates use exactly these vars.
-  local autonomy = require("reins.autonomy")
+  local autonomy = require("stick-shift.autonomy")
   local sys, user = prompts.render("implement", {
     root = ctx.root or "",
     context = ctx.context or "",

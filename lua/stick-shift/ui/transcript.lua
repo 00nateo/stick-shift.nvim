@@ -1,11 +1,11 @@
 ---@brief Transcript ring buffer for the panel. Stores backend
 ---request/response/event entries (cap 200) and renders them according to the
----EFFECTIVE transcript mode (reins.autonomy.transcript_mode()): "full" shows
+---EFFECTIVE transcript mode (stick-shift.autonomy.transcript_mode()): "full" shows
 ---headers + raw text, "summary" one truncated line per entry, "hidden"
 ---renders nothing anywhere. Subscribes itself to the "transcript" event on
 ---first require.
-local autonomy = require("reins.autonomy")
-local events = require("reins.events")
+local autonomy = require("stick-shift.autonomy")
+local events = require("stick-shift.events")
 
 local M = {}
 
@@ -79,7 +79,7 @@ function M.lines(max)
 end
 
 -- Subscribe on first require. Test runners that events.reset() also purge
--- package.loaded["reins..."], so the subscription comes back with the module.
+-- package.loaded["stick-shift..."], so the subscription comes back with the module.
 events.on("transcript", function(entry)
   M.push(entry)
 end)

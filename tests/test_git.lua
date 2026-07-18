@@ -1,7 +1,7 @@
--- Offline tests for lua/reins/git.lua against throwaway repos in temp dirs.
+-- Offline tests for lua/stick-shift/git.lua against throwaway repos in temp dirs.
 -- Everything here is synchronous (git.run uses vim.system():wait()).
-local git = require("reins.git")
-local util = require("reins.util")
+local git = require("stick-shift.git")
+local util = require("stick-shift.util")
 
 local MAX_DIFF_BYTES = 40 * 1024 -- mirrors git.lua's cap
 
@@ -22,7 +22,7 @@ local function new_repo()
   local dir = tmpdir()
   run_ok(dir, { "init", "-q" })
   run_ok(dir, { "config", "user.email", "tests@example.invalid" })
-  run_ok(dir, { "config", "user.name", "Reins Tests" })
+  run_ok(dir, { "config", "user.name", "StickShift Tests" })
   run_ok(dir, { "config", "commit.gpgsign", "false" })
   return dir
 end

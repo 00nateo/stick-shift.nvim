@@ -1,10 +1,10 @@
-# reins.nvim
+# stick-shift.nvim
 
 An AI pair-programming harness for Neovim that gives the steering wheel back.
 
 Most AI coding tools optimize for one thing: you describe, the agent writes.
 Code appears, learning doesn't, and technical debt accumulates invisibly
-because no human held the design. reins.nvim inverts the default. It is a
+because no human held the design. stick-shift.nvim inverts the default. It is a
 **configurable handicap** on AI assistance: at its most permissive it behaves
 like full vibe coding; dialed down, the AI does less of the writing and more
 of the *scaffolding of thought* - it helps you start, keeps direction, and
@@ -36,7 +36,7 @@ run autopilot silently or co-pilot with full logs.
 ## The living plan
 
 The centerpiece is a plan the AI maintains as its working memory across the
-session, stored in `.reins/` under your project root:
+session, stored in `.stick-shift/` under your project root:
 
 - **Detail gradient** - the current step is the most detailed; later steps
   are intentionally vague. Over-specifying the far future is wasted effort.
@@ -44,16 +44,16 @@ session, stored in `.reins/` under your project root:
   `Verify` and `Next` can reshape downstream steps and records why in an
   append-only decision log.
 - **Never a black box** - by default the panel shows only the current step,
-  but the full plan is always inspectable with `:ReinsPlan` (read-only
-  rendered markdown) and directly editable with `:ReinsPlan!` at autonomy
+  but the full plan is always inspectable with `:StickShiftPlan` (read-only
+  rendered markdown) and directly editable with `:StickShiftPlan!` at autonomy
   levels ≤ 2, where rewriting the AI's working memory is a feature.
 
-`.reins/` layout (git-ignored by default via its own `.gitignore`):
+`.stick-shift/` layout (git-ignored by default via its own `.gitignore`):
 
 ```
-.reins/
+.stick-shift/
   plan.json         # source of truth: steps, statuses, backend session id
-  plan.md           # human-readable render (what :ReinsPlan shows)
+  plan.md           # human-readable render (what :StickShiftPlan shows)
   decisions.log     # append-only log of meaningful course changes
   checkpoints.json  # snapshot refs taken before agent edits
   .gitignore        # contains "*"; delete it to track the plan in git
@@ -84,17 +84,17 @@ summary returns) and is **scoped**, never a full-repo reread:
 ## Quick start
 
 ```lua
-require("reins").setup({})   -- defaults: co-pilot (level 2), claude_code backend
+require("stick-shift").setup({})   -- defaults: co-pilot (level 2), claude_code backend
 ```
 
-1. Open your project and run `:ReinsGoal build a todo CLI in Lua`. The AI
+1. Open your project and run `:StickShiftGoal build a todo CLI in Lua`. The AI
    drafts a living plan and the first step becomes current.
 2. Write the code for the current step yourself (with ghost-text completion
-   and `:ReinsHint` if you want a nudge).
-3. `:ReinsVerify` - scoped check + real test run, two confidence signals.
-4. `:ReinsNext` - the next step gets its detail filled in and becomes
+   and `:StickShiftHint` if you want a nudge).
+3. `:StickShiftVerify` - scoped check + real test run, two confidence signals.
+4. `:StickShiftNext` - the next step gets its detail filled in and becomes
    current; later steps are reshaped if your decisions changed anything.
-5. `:Reins` toggles the panel; `:ReinsAutonomy 4` when you just want it done.
+5. `:StickShift` toggles the panel; `:StickShiftAutonomy 4` when you just want it done.
 
 No API key needed to try it: `backend = "mock"` runs the whole loop offline
 with canned responses.
@@ -108,7 +108,7 @@ Requires Neovim 0.11+ and git. Backends need their own tools (`claude` CLI,
 
 ```lua
 {
-  "reins-nvim/reins.nvim",
+  "00nateo/stick-shift.nvim",
   opts = {},
 }
 ```
@@ -121,9 +121,9 @@ untested here - this machine runs 0.11.5, which has no `vim.pack`):
 
 ```lua
 vim.pack.add({
-  { src = "https://github.com/reins-nvim/reins.nvim" },
+  { src = "https://github.com/00nateo/stick-shift.nvim" },
 })
-require("reins").setup({})
+require("stick-shift").setup({})
 ```
 
 ### Any plugin manager
@@ -131,46 +131,46 @@ require("reins").setup({})
 Put the repo on your runtimepath, then:
 
 ```lua
-require("reins").setup({})
+require("stick-shift").setup({})
 ```
 
 ### Packer (legacy, not the recommended path)
 
 ```lua
-use({ "reins-nvim/reins.nvim", config = function() require("reins").setup({}) end })
+use({ "00nateo/stick-shift.nvim", config = function() require("stick-shift").setup({}) end })
 ```
 
 ## Commands
 
 | Command | Description |
 |---|---|
-| `:Reins` | Toggle the panel |
-| `:Reins {layout}` | Move the panel: `left`/`right`/`top`/`bottom`/`float` (opens it if closed) |
-| `:ReinsGoal {text}` | Set the goal and create (or re-create) the living plan - the entry point. No argument prompts for input |
-| `:ReinsPlan` | Inspect the rendered plan (read-only) |
-| `:ReinsPlan!` | Edit `plan.json` directly (autonomy ≤ 2 only) |
-| `:ReinsVerify` | Verify the current step (scoped diff + real tests) |
-| `:ReinsNext` | Advance: fill in the next step's detail, make it current |
-| `:ReinsImplement` | Agent implements the current step (autonomy ≥ 3) |
-| `:ReinsHint` | One-sentence hint at the cursor |
-| `:ReinsAutonomy {0..4}` | Set the autonomy level; no argument shows it |
-| `:ReinsBackend {name}` | Switch backend; no argument shows the active one |
-| `:ReinsRevert` | Restore the working tree to the last checkpoint |
-| `:checkhealth reins` | Environment and backend diagnostics |
+| `:StickShift` | Toggle the panel |
+| `:StickShift {layout}` | Move the panel: `left`/`right`/`top`/`bottom`/`float` (opens it if closed) |
+| `:StickShiftGoal {text}` | Set the goal and create (or re-create) the living plan - the entry point. No argument prompts for input |
+| `:StickShiftPlan` | Inspect the rendered plan (read-only) |
+| `:StickShiftPlan!` | Edit `plan.json` directly (autonomy ≤ 2 only) |
+| `:StickShiftVerify` | Verify the current step (scoped diff + real tests) |
+| `:StickShiftNext` | Advance: fill in the next step's detail, make it current |
+| `:StickShiftImplement` | Agent implements the current step (autonomy ≥ 3) |
+| `:StickShiftHint` | One-sentence hint at the cursor |
+| `:StickShiftAutonomy {0..4}` | Set the autonomy level; no argument shows it |
+| `:StickShiftBackend {name}` | Switch backend; no argument shows the active one |
+| `:StickShiftRevert` | Restore the working tree to the last checkpoint |
+| `:checkhealth stick-shift` | Environment and backend diagnostics |
 
-Default keymaps (all overridable, set to `false` to disable): `<leader>rr`
-toggle panel, `<leader>rv` verify, `<leader>rn` next, `<leader>ra` cycle
-autonomy, `<leader>rh` hint. In insert mode, `<Tab>` accepts a ghost
+Default keymaps (all overridable, set to `false` to disable): `<leader>ss`
+toggle panel, `<leader>sv` verify, `<leader>sn` next, `<leader>sa` cycle
+autonomy, `<leader>sh` hint. In insert mode, `<Tab>` accepts a ghost
 completion and falls through to a normal `<Tab>` when there is none.
 
 ## Configuration
 
-Defaults, verbatim from `lua/reins/config.lua` (pass only the keys you want
+Defaults, verbatim from `lua/stick-shift/config.lua` (pass only the keys you want
 to change; unknown keys warn, invalid values fall back to defaults):
 
 ```lua
-require("reins").setup({
-  -- 0..4: hint-only, navigator, co-pilot, driver-assist, autopilot. See :help reins-autonomy.
+require("stick-shift").setup({
+  -- 0..4: hint-only, navigator, co-pilot, driver-assist, autopilot. See :help stick-shift-autonomy.
   autonomy = 2,
   -- Active backend adapter: "claude_code" | "acp" | "ollama" | "local_mac" | "mock"
   backend = "claude_code",
@@ -186,7 +186,7 @@ require("reins").setup({
     next_step = "frontier",
   },
   ui = {
-    layout = "right", -- "left" | "top" | "right" | "bottom" | "float" (movable live via :Reins {layout})
+    layout = "right", -- "left" | "top" | "right" | "bottom" | "float" (movable live via :StickShift {layout})
     transcript = nil, -- nil = derive from autonomy; else "full"|"summary"|"hidden"
     open_on_start = false, -- note: at autonomy 3-4 the panel opens on setup regardless
     width = 48, -- columns for left/right docks and float
@@ -212,7 +212,7 @@ require("reins").setup({
     timeout_ms = 120000,
   },
   git = {
-    tag_commits = false, -- add "Reins-Autonomy: N (name)" trailer to assisted commits
+    tag_commits = false, -- add "StickShift-Autonomy: N (name)" trailer to assisted commits
     checkpoint = true, -- snapshot before agent-driven edits (levels 3-4)
   },
   backends = {
@@ -237,11 +237,11 @@ require("reins").setup({
   },
   keymaps = {
     -- set any to false to disable
-    toggle_panel = "<leader>rr",
-    verify = "<leader>rv",
-    next = "<leader>rn",
-    cycle_autonomy = "<leader>ra",
-    hint = "<leader>rh",
+    toggle_panel = "<leader>ss",
+    verify = "<leader>sv",
+    next = "<leader>sn",
+    cycle_autonomy = "<leader>sa",
+    hint = "<leader>sh",
   },
 })
 ```
@@ -249,13 +249,13 @@ require("reins").setup({
 ## Backends
 
 All backends implement one adapter interface; switch at runtime with
-`:ReinsBackend {name}`.
+`:StickShiftBackend {name}`.
 
 - **claude_code** (default) - runs the `claude` CLI headless (`-p` with a
   JSON envelope; session `--resume` gives free conversation persistence, the
   id is stored in `plan.json`). For `Implement step` it streams the agent's
   events into the transcript. It runs as *your own authenticated tool*: no
-  background daemon hammering it, and reins never embeds, reads, or logs
+  background daemon hammering it, and stick-shift never embeds, reads, or logs
   credentials - use it within the usage terms of your Claude subscription.
 - **ollama** - plain HTTP to a local Ollama server via curl. Good cheap
   target for the ghost/hint roles.
@@ -273,7 +273,7 @@ Model choice is decoupled from autonomy. Each role (`ghost`, `hint`, `plan`,
 adapter than the active backend:
 
 ```lua
-require("reins").setup({
+require("stick-shift").setup({
   backend = "claude_code",
   models = {
     -- cheap, local, fast for the high-frequency roles:
@@ -297,19 +297,19 @@ These are core mechanics, not footnotes:
   lock.
 - **Per-step checkpoints** (levels 3–4) - before the agent writes, a
   non-mutating git snapshot is taken (includes untracked files; refs recorded
-  in `.reins/checkpoints.json`). `:ReinsRevert` restores the working tree
+  in `.stick-shift/checkpoints.json`). `:StickShiftRevert` restores the working tree
   from the last snapshot. Known limitation: files the agent *created after*
   the snapshot are not deleted by the restore - review with `git status`.
-- **Append-only decision log** - `.reins/decisions.log` records one line per
+- **Append-only decision log** - `.stick-shift/decisions.log` records one line per
   meaningful course change.
 - **Autonomy-tagged commits** (opt-in `git.tag_commits`) - commit-message
-  buffers (`gitcommit` filetype) get a `Reins-Autonomy: 2 (co-pilot)` trailer
+  buffers (`gitcommit` filetype) get a `StickShift-Autonomy: 2 (co-pilot)` trailer
   inserted automatically, so `git log` shows how much of the history was
   machine-assisted. Delete the line before saving to opt out per-commit.
 
 ## Health
 
-`:checkhealth reins` reports the Neovim version, git, each registered
+`:checkhealth stick-shift` reports the Neovim version, git, each registered
 backend's availability (claude binary, ollama reachability), the detected
 test command for the current project, and whether a plan exists.
 
@@ -326,9 +326,9 @@ nvim --headless -l scripts/smoke.lua
 nvim --headless -l tests/run.lua
 ```
 
-Backends are plain adapter tables - see `lua/reins/backend/init.lua` for the
-contract and `lua/reins/backend/mock.lua` for the reference implementation.
-`:help reins-develop` has the details.
+Backends are plain adapter tables - see `lua/stick-shift/backend/init.lua` for the
+contract and `lua/stick-shift/backend/mock.lua` for the reference implementation.
+`:help stick-shift-develop` has the details.
 
 ## Status
 
@@ -350,8 +350,8 @@ Honest state as of the last build pass:
 - **acp / local_mac adapters**: request construction and response parsing are
   exercised only against scripted/canned responses - NOT yet validated
   against a live ACP agent or MLX/llama.cpp server. `available()` and
-  `:checkhealth reins` report this honestly.
-- Remaining `TODO(reins)` markers: `touched` symbol expansion via
+  `:checkhealth stick-shift` report this honestly.
+- Remaining `TODO(stick-shift)` markers: `touched` symbol expansion via
   LSP/Tree-sitter (verify-diff narrowing), Neovim 0.12 native
   `vim.lsp.inline_completion` integration, ACP live validation and
   `session/load` reuse, local_mac live-server validation.

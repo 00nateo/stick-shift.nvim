@@ -3,18 +3,18 @@
 ---since the step began, never the whole repo) and runs the project's real
 ---test command; the LLM's judgment and the test result are reported as two
 ---separate confidence signals.
-local autonomy = require("reins.autonomy")
-local backend = require("reins.backend")
-local config = require("reins.config")
-local events = require("reins.events")
-local git = require("reins.git")
-local store = require("reins.plan.store")
-local util = require("reins.util")
+local autonomy = require("stick-shift.autonomy")
+local backend = require("stick-shift.backend")
+local config = require("stick-shift.config")
+local events = require("stick-shift.events")
+local git = require("stick-shift.git")
+local store = require("stick-shift.plan.store")
+local util = require("stick-shift.util")
 
 local M = {}
 
 M._busy = false
----@type reins.Plan|nil in-memory plan (authoritative while an op runs)
+---@type stick-shift.Plan|nil in-memory plan (authoritative while an op runs)
 M._plan = nil
 M._root = nil
 
@@ -24,15 +24,15 @@ local function root()
   return M._root
 end
 
----Reload from disk so manual :ReinsPlan! edits are respected.
----@return reins.Plan|nil, string|nil err
+---Reload from disk so manual :StickShiftPlan! edits are respected.
+---@return stick-shift.Plan|nil, string|nil err
 local function load_plan(r)
   local plan, err = store.load(r)
   M._plan = plan
   return plan, err
 end
 
----@return { root: string, plan: reins.Plan|nil, busy: boolean }
+---@return { root: string, plan: stick-shift.Plan|nil, busy: boolean }
 function M.state()
   local r = root()
   if not M._busy then
@@ -47,7 +47,7 @@ end
 
 local function begin_op(label)
   if M._busy then
-    return false, "another reins operation is in flight"
+    return false, "another stick-shift operation is in flight"
   end
   M._busy = true
   events.emit("status", label)
@@ -75,7 +75,7 @@ end
 ---Session context is only reusable on the adapter that created it. Ops can be
 ---routed per role (config.models.*), so gate on the adapter that will actually
 ---serve THIS op - not on the globally active backend.
----@param plan reins.Plan|nil
+---@param plan stick-shift.Plan|nil
 ---@param op string the op the session is for ("plan"|"verify"|"next_step"|"implement")
 ---@return string|nil session_id
 local function session_for(plan, op)
@@ -86,7 +86,7 @@ local function session_for(plan, op)
   return nil
 end
 
----@param plan reins.Plan
+---@param plan stick-shift.Plan
 ---@param meta table|nil
 local function remember_session(plan, meta)
   if meta and meta.session_id and meta.backend then
@@ -96,12 +96,12 @@ end
 
 -- ---------------------------------------------------------------- start ----
 
----Create (or re-create) the living plan from a goal. Entry point (:ReinsGoal).
+---Create (or re-create) the living plan from a goal. Entry point (:StickShiftGoal).
 ---@param goal string
----@param cb fun(err: string|nil, plan: reins.Plan|nil)|nil
+---@param cb fun(err: string|nil, plan: stick-shift.Plan|nil)|nil
 function M.start(goal, cb)
   if goal == nil or vim.trim(goal) == "" then
-    util.error("a goal is required, e.g. :ReinsGoal build a todo CLI")
+    util.error("a goal is required, e.g. :StickShiftGoal build a todo CLI")
     if cb then
       cb("empty goal")
     end
@@ -242,10 +242,10 @@ end
 
 ---Scope of a verification: diff since the step began, restricted to the
 ---step's expected surface when that surface is non-empty and real.
----TODO(reins): expand `touched` symbols to files via LSP/Tree-sitter
+---TODO(stick-shift): expand `touched` symbols to files via LSP/Tree-sitter
 ---references; today only entries that exist as paths narrow the diff.
 ---@param r string
----@param step reins.Step
+---@param step stick-shift.Step
 ---@return string diff
 local function scoped_diff(r, step)
   if not git.in_repo(r) then
@@ -283,7 +283,7 @@ function M.verify(cb)
   local r = root()
   local plan = load_plan(r)
   if not plan then
-    util.warn("no plan yet - set a goal with :ReinsGoal")
+    util.warn("no plan yet - set a goal with :StickShiftGoal")
     if cb then
       cb("no plan")
     end
@@ -364,7 +364,7 @@ end
 
 ---Advance to the next step: the backend fills in the (intentionally vague)
 ---detail of the upcoming step and reshapes later ones if decisions changed.
----@param cb fun(err: string|nil, step: reins.Step|nil)|nil
+---@param cb fun(err: string|nil, step: stick-shift.Step|nil)|nil
 function M.next(cb)
   if not autonomy.allows("next") then
     util.warn("next is unavailable at autonomy level " .. autonomy.level() .. " (" .. autonomy.name() .. ")")
@@ -376,7 +376,7 @@ function M.next(cb)
   local r = root()
   local plan = load_plan(r)
   if not plan then
-    util.warn("no plan yet - set a goal with :ReinsGoal")
+    util.warn("no plan yet - set a goal with :StickShiftGoal")
     if cb then
       cb("no plan")
     end
@@ -394,7 +394,7 @@ function M.next(cb)
     end
   end
   if not has_pending then
-    util.notify("plan complete - no pending steps left. :ReinsGoal starts a new plan.")
+    util.notify("plan complete - no pending steps left. :StickShiftGoal starts a new plan.")
     if cb then
       cb(nil, nil)
     end
@@ -476,7 +476,7 @@ function M.implement(cb)
   local plan = load_plan(r)
   local step = plan and store.get_step(plan) or nil
   if not step then
-    util.warn("no current step - set a goal with :ReinsGoal")
+    util.warn("no current step - set a goal with :StickShiftGoal")
     if cb then
       cb("no current step")
     end
@@ -492,7 +492,7 @@ function M.implement(cb)
   end
   local done = finish(cb)
   if config.get().git.checkpoint then
-    local has_cp, checkpoint = pcall(require, "reins.checkpoint")
+    local has_cp, checkpoint = pcall(require, "stick-shift.checkpoint")
     if has_cp then
       local ref, cerr = checkpoint.snapshot(r, "before implement " .. step.id)
       if ref then
@@ -526,7 +526,7 @@ function M.implement(cb)
       store.append_decision(r, ("[%s] agent implemented step (level %d)"):format(step.id, autonomy.level()))
       -- Agent edited files on disk; pick the changes up in open buffers.
       vim.cmd("checktime")
-      util.notify("implement finished - run :ReinsVerify")
+      util.notify("implement finished - run :StickShiftVerify")
     else
       store.append_decision(
         r,
@@ -536,7 +536,7 @@ function M.implement(cb)
         )
       )
       util.notify(
-        "this backend cannot edit files; it returned a textual proposal (see the panel transcript). Apply it yourself, then :ReinsVerify"
+        "this backend cannot edit files; it returned a textual proposal (see the panel transcript). Apply it yourself, then :StickShiftVerify"
       )
     end
     events.emit("plan_updated", plan)

@@ -17,11 +17,11 @@
 ---are verified headlessly against a scripted fake agent speaking canned
 ---JSON-RPC lines, NOT against a production ACP agent (none is installed
 ---here). available() says so.
----TODO(reins): verify against a real agent (e.g. claude-code-acp, gemini-cli).
----TODO(reins): session reuse via session/load when the agent advertises the
+---TODO(stick-shift): verify against a real agent (e.g. claude-code-acp, gemini-cli).
+---TODO(stick-shift): session reuse via session/load when the agent advertises the
 ---loadSession capability; currently every call opens a fresh session (prompts
 ---embed all needed state, so this is an optimization, not a correctness gap).
-local config = require("reins.config")
+local config = require("stick-shift.config")
 
 local M = { name = "acp" }
 
@@ -173,7 +173,7 @@ function M._handle(st, msg)
         id = msg.id,
         error = {
           code = -32601,
-          message = "method not supported by reins client: " .. tostring(msg.method),
+          message = "method not supported by stick-shift client: " .. tostring(msg.method),
         },
       })
     end
@@ -253,7 +253,7 @@ function M._new_state(opts, allow)
       clientCapabilities = {
         fs = { readTextFile = false, writeTextFile = false },
       },
-      clientInfo = { name = "reins.nvim", version = "0.1" },
+      clientInfo = { name = "stick-shift.nvim", version = "0.1" },
     },
   }
   return st, init
@@ -272,7 +272,7 @@ function M.generate(_, opts, cb)
     cb('backends.acp.command is not configured (argv table, e.g. { "claude-code-acp" })')
     return nil
   end
-  local autonomy = require("reins.autonomy")
+  local autonomy = require("stick-shift.autonomy")
 
   local done = false
   local proc = nil

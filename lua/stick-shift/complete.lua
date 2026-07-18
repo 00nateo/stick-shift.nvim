@@ -13,27 +13,27 @@
 ---  4. press <Tab>: the ghost text is inserted into the buffer and the ghost
 ---     clears; with no ghost visible, <Tab> still indents as normal
 ---  5. move the cursor / leave insert mode: ghost clears
----  6. :ReinsAutonomy 1 - typing no longer produces ghost text (completion
+---  6. :StickShiftAutonomy 1 - typing no longer produces ghost text (completion
 ---     is gated to autonomy >= 2 unless completion.force)
-local autonomy = require("reins.autonomy")
-local backend = require("reins.backend")
-local config = require("reins.config")
-local events = require("reins.events")
-local lock = require("reins.lock")
-local util = require("reins.util")
+local autonomy = require("stick-shift.autonomy")
+local backend = require("stick-shift.backend")
+local config = require("stick-shift.config")
+local events = require("stick-shift.events")
+local lock = require("stick-shift.lock")
+local util = require("stick-shift.util")
 
 local M = {}
 
-local ns = vim.api.nvim_create_namespace("reins/ghost")
+local ns = vim.api.nvim_create_namespace("stick-shift/ghost")
 
----@class reins.Suggestion
+---@class stick-shift.Suggestion
 ---@field bufnr integer
 ---@field row integer 0-indexed row the suggestion anchors to
 ---@field col integer 0-indexed byte column
 ---@field text string trimmed insert text (may be multi-line)
 ---@field id integer extmark id
 
----@type reins.Suggestion|nil current on-screen suggestion
+---@type stick-shift.Suggestion|nil current on-screen suggestion
 M._suggestion = nil
 
 ---Monotonic request generation: any response whose generation no longer
@@ -112,16 +112,16 @@ local function buffer_ctx(bufnr, row, col, before_n, after_n)
     after_cursor = table.concat(after, "\n"),
   }
 end
-M._buffer_ctx = buffer_ctx -- shared with reins.hint (smaller window there)
+M._buffer_ctx = buffer_ctx -- shared with stick-shift.hint (smaller window there)
 
 ---Current step, slimmed to title + detail so the ghost prompt stays cheap.
 ---@return { title: string, detail: string }|nil
 local function current_step()
-  local st = require("reins.plan.lifecycle").state()
+  local st = require("stick-shift.plan.lifecycle").state()
   if not st.plan then
     return nil
   end
-  local step = require("reins.plan.store").get_step(st.plan)
+  local step = require("stick-shift.plan.store").get_step(st.plan)
   if not step then
     return nil
   end
@@ -162,10 +162,10 @@ local function render(bufnr, row0, col, text)
   local lines = vim.split(text, "\n", { plain = true })
   local virt_lines = {}
   for i = 2, #lines do
-    table.insert(virt_lines, { { lines[i], "ReinsGhost" } })
+    table.insert(virt_lines, { { lines[i], "StickShiftGhost" } })
   end
   local ok, id = pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, row0, col, {
-    virt_text = { { lines[1], "ReinsGhost" } },
+    virt_text = { { lines[1], "StickShiftGhost" } },
     -- virt_text_pos = "inline" is available since 0.10; fine on 0.11.
     virt_text_pos = "inline",
     virt_lines = #virt_lines > 0 and virt_lines or nil,
@@ -185,7 +185,7 @@ function M._request(bufnr)
   if not M.enabled() then
     return
   end
-  if require("reins.plan.lifecycle").is_busy() then
+  if require("stick-shift.plan.lifecycle").is_busy() then
     return -- an agent op is running; don't race it
   end
   if not vim.api.nvim_buf_is_valid(bufnr) or bufnr ~= vim.api.nvim_get_current_buf() then
@@ -258,8 +258,8 @@ function M.accept()
     M.clear()
     return false
   end
-  if require("reins.plan.lifecycle").is_busy() then
-    util.warn("completion: not accepting while a reins operation is running")
+  if require("stick-shift.plan.lifecycle").is_busy() then
+    util.warn("completion: not accepting while a stick-shift operation is running")
     return false
   end
   local new_row, new_col
@@ -297,20 +297,20 @@ local function map_accept_key()
       -- behind keys already typed, reordering input during fast typing/macros.
       vim.api.nvim_feedkeys(termcodes, "in", false)
     end
-  end, { desc = "reins: accept inline completion (falls through when no ghost)", silent = true })
+  end, { desc = "stick-shift: accept inline completion (falls through when no ghost)", silent = true })
 end
 
----Wire autocmds, the accept keymap, and the ReinsGhost highlight.
+---Wire autocmds, the accept keymap, and the StickShiftGhost highlight.
 function M.setup()
-  vim.api.nvim_set_hl(0, "ReinsGhost", { link = "Comment", default = true })
+  vim.api.nvim_set_hl(0, "StickShiftGhost", { link = "Comment", default = true })
 
-  -- TODO(reins): Neovim 0.12 ships vim.lsp.inline_completion - a native
+  -- TODO(stick-shift): Neovim 0.12 ships vim.lsp.inline_completion - a native
   -- ghost-text pipeline we could feed via an in-process LSP server instead of
   -- managing extmarks by hand. Untestable on this machine (0.11.5), so the
   -- extmark path below is the deliverable; this branch only records the fact.
   if vim.lsp.inline_completion ~= nil then
     vim.notify(
-      "[reins] Neovim 0.12 native inline completion detected but not yet used (TODO(reins)); using extmark ghost text",
+      "[stick-shift] Neovim 0.12 native inline completion detected but not yet used (TODO(stick-shift)); using extmark ghost text",
       vim.log.levels.DEBUG
     )
   end
@@ -327,10 +327,10 @@ function M.setup()
     end
   )
 
-  local group = vim.api.nvim_create_augroup("reins.complete", { clear = true })
+  local group = vim.api.nvim_create_augroup("stick-shift.complete", { clear = true })
   vim.api.nvim_create_autocmd("TextChangedI", {
     group = group,
-    desc = "reins: request completion (debounced)",
+    desc = "stick-shift: request completion (debounced)",
     callback = function(a)
       if not M.enabled() then
         return
@@ -341,12 +341,12 @@ function M.setup()
   })
   vim.api.nvim_create_autocmd("CursorMovedI", {
     group = group,
-    desc = "reins: dismiss ghost on cursor move",
+    desc = "stick-shift: dismiss ghost on cursor move",
     callback = dismiss,
   })
   vim.api.nvim_create_autocmd({ "InsertLeave", "BufLeave" }, {
     group = group,
-    desc = "reins: clear ghost and pending requests",
+    desc = "stick-shift: clear ghost and pending requests",
     callback = M.clear,
   })
   -- <C-c> leaves insert mode WITHOUT firing InsertLeave; ModeChanged i*:*
@@ -355,7 +355,7 @@ function M.setup()
   vim.api.nvim_create_autocmd("ModeChanged", {
     group = group,
     pattern = "i*:*",
-    desc = "reins: clear ghost on any insert-mode exit (incl. <C-c>)",
+    desc = "stick-shift: clear ghost on any insert-mode exit (incl. <C-c>)",
     callback = M.clear,
   })
 

@@ -3,15 +3,15 @@
 ---(tiny-inline-diagnostic style). Dedicated namespace; never touches the
 ---diagnostics namespace. Available at every autonomy level - it is the only
 ---feature alive at level 0.
-local autonomy = require("reins.autonomy")
-local backend = require("reins.backend")
-local config = require("reins.config")
-local events = require("reins.events")
-local util = require("reins.util")
+local autonomy = require("stick-shift.autonomy")
+local backend = require("stick-shift.backend")
+local config = require("stick-shift.config")
+local events = require("stick-shift.events")
+local util = require("stick-shift.util")
 
 local M = {}
 
-local ns = vim.api.nvim_create_namespace("reins/hint")
+local ns = vim.api.nvim_create_namespace("stick-shift/hint")
 
 ---@type { bufnr: integer, row: integer, id: integer }|nil on-screen hint
 M._hint = nil
@@ -44,11 +44,11 @@ end
 ---Current step slimmed to title + detail (direction source; prompt stays small).
 ---@return { title: string, detail: string }|nil
 local function current_step()
-  local st = require("reins.plan.lifecycle").state()
+  local st = require("stick-shift.plan.lifecycle").state()
   if not st.plan then
     return nil
   end
-  local step = require("reins.plan.store").get_step(st.plan)
+  local step = require("stick-shift.plan.store").get_step(st.plan)
   if not step then
     return nil
   end
@@ -60,11 +60,11 @@ end
 ---@param row integer 1-indexed
 ---@param col integer 0-indexed byte column
 local function buffer_ctx(bufnr, row, col)
-  local ok, complete = pcall(require, "reins.complete")
+  local ok, complete = pcall(require, "stick-shift.complete")
   if ok then
     return complete._buffer_ctx(bufnr, row, col, 60, 20)
   end
-  -- Degrade: reins.complete missing from a partial tree; cursor line only.
+  -- Degrade: stick-shift.complete missing from a partial tree; cursor line only.
   local line = vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1] or ""
   return {
     path = vim.api.nvim_buf_get_name(bufnr),
@@ -80,7 +80,7 @@ local function render(text)
   local bufnr = vim.api.nvim_get_current_buf()
   local row = vim.api.nvim_win_get_cursor(0)[1] - 1
   local ok, id = pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, row, 0, {
-    virt_text = { { "≫ " .. text, "ReinsHint" } },
+    virt_text = { { "≫ " .. text, "StickShiftHint" } },
     virt_text_pos = "eol",
   })
   if ok then
@@ -151,14 +151,14 @@ local function maybe_auto_hint()
   M.show()
 end
 
----Wire autocmds and the ReinsHint highlight.
+---Wire autocmds and the StickShiftHint highlight.
 function M.setup()
-  vim.api.nvim_set_hl(0, "ReinsHint", { link = "DiagnosticVirtualTextHint", default = true })
+  vim.api.nvim_set_hl(0, "StickShiftHint", { link = "DiagnosticVirtualTextHint", default = true })
 
-  local group = vim.api.nvim_create_augroup("reins.hint", { clear = true })
+  local group = vim.api.nvim_create_augroup("stick-shift.hint", { clear = true })
   vim.api.nvim_create_autocmd({ "CursorMoved", "InsertEnter" }, {
     group = group,
-    desc = "reins: clear hint",
+    desc = "stick-shift: clear hint",
     callback = function()
       -- Only clear when a hint is actually up (or a request is pending), so
       -- plain cursor movement stays free.
@@ -169,7 +169,7 @@ function M.setup()
   })
   vim.api.nvim_create_autocmd("CursorHold", {
     group = group,
-    desc = "reins: auto hint (autonomy-gated, rate-limited)",
+    desc = "stick-shift: auto hint (autonomy-gated, rate-limited)",
     callback = maybe_auto_hint,
   })
 
